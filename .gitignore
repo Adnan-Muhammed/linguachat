@@ -39,8 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-# testStructur...
-
 ##############################
 # Markdown files
 AGENTS.md
@@ -49,5 +47,5 @@ README.md
 
 # Extra JS files
 create-file.js
-rename-to-t...
-testStructur...
+rename-to-ts.js
+testStructure.js
