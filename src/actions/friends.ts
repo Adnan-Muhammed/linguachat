@@ -3,6 +3,17 @@
 import { createClient } from '@/lib/supabase/server';
 import { DirectoryUser } from '@/types';
 
+type RequestRow = {
+  profiles: {
+    id: string;
+    name: string;
+    username: string;
+    age: string | number;
+    gender?: string;
+    mobile?: string;
+  };
+};
+
 export async function fetchUsersList(): Promise<DirectoryUser[]> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -77,7 +88,7 @@ export async function fetchIncomingRequests(): Promise<DirectoryUser[]> {
 
   if (!requests) return [];
 
-  return requests.map((r: any) => ({
+  return (requests as unknown as RequestRow[]).map((r) => ({
     id: r.profiles.id,
     name: r.profiles.name,
     username: r.profiles.username,
@@ -132,7 +143,7 @@ export async function fetchFriends(): Promise<DirectoryUser[]> {
   const friends: DirectoryUser[] = [];
 
   if (sentAccepted) {
-    sentAccepted.forEach((r: any) => {
+    (sentAccepted as unknown as RequestRow[]).forEach((r) => {
       if (r.profiles) {
         friends.push({
           id: r.profiles.id,
@@ -148,7 +159,7 @@ export async function fetchFriends(): Promise<DirectoryUser[]> {
   }
 
   if (receivedAccepted) {
-    receivedAccepted.forEach((r: any) => {
+    (receivedAccepted as unknown as RequestRow[]).forEach((r) => {
       if (r.profiles) {
         friends.push({
           id: r.profiles.id,

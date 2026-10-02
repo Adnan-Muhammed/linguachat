@@ -115,6 +115,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('tidepool.theme') as Theme | null;
+    // eslint-disable-next-line
     setTheme(
       storedTheme || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light')
     );
@@ -200,6 +201,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ui.chat, db.me?.id, supabase]);
 
   // 🚀 Fixed: Realtime friend requests subscription
@@ -310,8 +312,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await loadData();
       setUi(FRESH_UI);
       setScreen('app');
-    } catch (e: any) {
-      toast(e.message || 'Registration failed');
+    } catch (e: unknown) {
+      toast(e instanceof Error ? e.message : 'Registration failed');
     }
   };
 
@@ -346,14 +348,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   /* ----- friends ----- */
   const sendFriendRequest = async (id: string) => {
-    if (db.sent.includes(id as any)) return;
+    if (db.sent.includes(id)) return;
     try {
       await sendFriendRequestAction(id);
-      setDb((d) => ({ ...d, sent: [...d.sent, id as any] }));
+      setDb((d) => ({ ...d, sent: [...d.sent, id] }));
       const targetUser = allUsers.find((u) => u.id === id);
       toast('Invitation sent to ' + (targetUser ? targetUser.name.split(' ')[0] : 'user'));
-    } catch (e: any) {
-      toast(e.message || 'Failed to send request');
+    } catch (e: unknown) {
+      toast(e instanceof Error ? e.message : 'Failed to send request');
     }
   };
 
@@ -363,8 +365,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const targetUser = db.incoming.find((u) => u.id === id);
       toast((targetUser ? targetUser.name.split(' ')[0] : 'User') + ' is now your friend');
       // The realtime UPDATE event will handle updating the lists automatically
-    } catch (e: any) {
-      toast(e.message || 'Failed to accept request');
+    } catch (e: unknown) {
+      toast(e instanceof Error ? e.message : 'Failed to accept request');
     }
   };
 
@@ -373,8 +375,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await respondFriendRequestAction(id, 'rejected');
       setDb((d) => ({ ...d, incoming: d.incoming.filter((x) => x.id !== id) }));
       toast('Request removed');
-    } catch (e: any) {
-      toast(e.message || 'Failed to reject request');
+    } catch (e: unknown) {
+      toast(e instanceof Error ? e.message : 'Failed to reject request');
     }
   };
 
@@ -418,8 +420,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           messages: { ...d.messages, [id]: [...(d.messages[id] || []), sentMsg] },
         }));
       }
-    } catch (e: any) {
-      toast(e.message || 'Failed to send message');
+    } catch (e: unknown) {
+      toast(e instanceof Error ? e.message : 'Failed to send message');
     }
   };
 
@@ -429,8 +431,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await createOrUpdateProfile(data);
       setDb((d) => (d.me ? { ...d, me: { ...d.me, ...data } } : d));
       toast('Profile updated');
-    } catch (e: any) {
-      toast(e.message || 'Failed to update profile');
+    } catch (e: unknown) {
+      toast(e instanceof Error ? e.message : 'Failed to update profile');
     }
   };
 
