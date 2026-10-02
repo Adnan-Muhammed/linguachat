@@ -9,6 +9,7 @@ export interface Profile {
   age: number;
   gender: string;
   mobile: string;
+  email?: string;
 }
 
 export interface DirectoryUser {
@@ -16,10 +17,13 @@ export interface DirectoryUser {
   name: string;
   username: string;
   age: number;
+  gender?: string;
+  mobile?: string;
   online: boolean;
 }
 
 export interface Message {
+  id?: string;
   from: string; // 'me' or a user id
   text: string;
   t: number;
@@ -28,9 +32,9 @@ export interface Message {
 export interface Db {
   me?: Profile;
   session?: boolean;
-  friends: string[];
-  sent: string[];
-  incoming: string[];
+  friends: DirectoryUser[];
+  sent: string[]; // target user IDs where current user sent request
+  incoming: DirectoryUser[]; // users who sent request to current user
   messages: Record<string, Message[]>;
 }
 

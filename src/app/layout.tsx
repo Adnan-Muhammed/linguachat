@@ -5,7 +5,7 @@
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
 //   subsets: ["latin"],
-// });
+// }); 
 
 // const geistMono = Geist_Mono({
 //   variable: "--font-geist-mono",
@@ -32,7 +32,7 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
 
-export const metadata: Metadata = { title: 'Tidepool – Chat' };
+export const metadata: Metadata = { title: 'linguaChat' };
 
 export const viewport: Viewport = {
   width: 'device-width',

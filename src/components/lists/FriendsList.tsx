@@ -1,5 +1,4 @@
 import { useApp } from '@/context/AppContext';
-import { getUser } from '@/lib/data';
 import { matches } from '@/lib/utils';
 import { Icons } from '../Icons';
 import Avatar from '../ui/Avatar';
@@ -8,7 +7,7 @@ import ListShell from '../layout/ListShell';
 
 export default function FriendsList() {
   const { db, ui, openChat, go } = useApp();
-  const friends = db.friends.map((id) => getUser(id)).filter((u) => matches(u, ui.q));
+  const friends = db.friends.filter((u) => matches(u, ui.q));
 
   return (
     <ListShell title="Friends" search={db.friends.length > 0}>

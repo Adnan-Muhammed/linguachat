@@ -1,14 +1,15 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { getUser } from '@/lib/data';
 import { formatTime } from '@/lib/utils';
 import { Icons } from '../Icons';
 import Avatar from '../ui/Avatar';
 
 export default function ChatPanel({ friendId }: { friendId: string }) {
-  const { db, typingId, closeChat, sendMessage } = useApp();
-  const u = getUser(friendId);
-  const msgs = db.messages[u.id] || [];
+  const { db, allUsers, typingId, closeChat, sendMessage } = useApp();
+  
+  // Find target friend either in db.friends or allUsers
+  const u = db.friends.find((f) => f.id === friendId) || allUsers.find((f) => f.id === friendId);
+  const msgs = (u && db.messages[u.id]) || [];
   const [text, setText] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -16,6 +17,8 @@ export default function ChatPanel({ friendId }: { friendId: string }) {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [msgs.length, typingId]);
+
+  if (!u) return null;
 
   const submit = () => {
     const t = text.trim();
@@ -41,7 +44,7 @@ export default function ChatPanel({ friendId }: { friendId: string }) {
           const d = new Date(m.t).toDateString();
           const showDay = i === 0 || d !== new Date(msgs[i - 1].t).toDateString();
           return (
-            <Fragment key={`${m.t}-${i}`}>
+            <Fragment key={m.id || `${m.t}-${i}`}>
               {showDay && <div className="day">{d === new Date().toDateString() ? 'Today' : d}</div>}
               <div className={`msg ${m.from === 'me' ? 'out' : 'in'}`}>
                 {m.text}

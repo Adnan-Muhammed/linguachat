@@ -4,21 +4,28 @@ import { GENDERS, MOBILE_RE, USERNAME_RE } from '@/lib/utils';
 import Field from '../ui/Field';
 import ThemeToggle from '../ui/ThemeToggle';
 
-const INITIAL = { name: 'Alex Morgan', username: '', age: '', gender: '', mobile: '' };
-type Form = typeof INITIAL;
+type Form = { name: string; username: string; age: string; gender: string; mobile: string };
 type Errors = Partial<Record<keyof Form, string>>;
 
 export default function RegisterScreen() {
-  const { registerUser } = useApp();
-  const [f, setF] = useState<Form>(INITIAL);
+  const { db, registerUser } = useApp();
+  const email = db.me?.email || 'Signed in via Google';
+  const [f, setF] = useState<Form>({
+    name: db.me?.name || '',
+    username: db.me?.username || '',
+    age: db.me?.age ? String(db.me.age) : '',
+    gender: db.me?.gender || '',
+    mobile: db.me?.mobile || '',
+  });
   const [errs, setErrs] = useState<Errors>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const set =
     (k: keyof Form) =>
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setF((p) => ({ ...p, [k]: e.target.value }));
 
-  const submit = (e: FormEvent<HTMLFormElement>) => {
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const v = Object.fromEntries(
       Object.entries(f).map(([k, x]) => [k, x.trim()])
@@ -39,14 +46,16 @@ export default function RegisterScreen() {
     setErrs(next);
     if (Object.keys(next).length) return;
 
-    registerUser({
-      id: 'me',
+    setSubmitting(true);
+    await registerUser({
+      id: db.me?.id || '',
       name: v.name,
       username: v.username,
       age: +v.age,
       gender: v.gender,
       mobile: v.mobile,
     });
+    setSubmitting(false);
   };
 
   return (
@@ -54,7 +63,7 @@ export default function RegisterScreen() {
       <ThemeToggle />
       <form className="card form" onSubmit={submit} noValidate>
         <h2>Set up your profile</h2>
-        <p className="sub">Signed in as alex.morgan@gmail.com</p>
+        <p className="sub">Signed in as {email}</p>
 
         <Field id="rName" label="Name" error={errs.name}>
           <input id="rName" value={f.name} onChange={set('name')} autoComplete="name" />
@@ -79,7 +88,9 @@ export default function RegisterScreen() {
           <input id="rMobile" type="tel" value={f.mobile} onChange={set('mobile')} placeholder="+91 98765 43210" autoComplete="tel" />
         </Field>
 
-        <button className="btn" type="submit">Enter app</button>
+        <button className="btn" type="submit" disabled={submitting}>
+          {submitting ? 'Saving...' : 'Enter app'}
+        </button>
       </form>
     </section>
   );

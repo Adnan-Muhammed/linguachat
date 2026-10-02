@@ -1,5 +1,4 @@
 import { useApp } from '@/context/AppContext';
-import { getUser } from '@/lib/data';
 import { Icons } from '../Icons';
 import Avatar from '../ui/Avatar';
 import EmptyState from '../ui/EmptyState';
@@ -11,8 +10,7 @@ export default function RequestsList() {
   return (
     <ListShell title="Friend requests">
       {db.incoming.length ? (
-        db.incoming.map((id) => {
-          const u = getUser(id);
+        db.incoming.map((u) => {
           return (
             <div key={u.id} className="reqcard">
               <div className="top">
