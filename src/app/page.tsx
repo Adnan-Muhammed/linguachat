@@ -70,8 +70,8 @@
 
  
 
-import TidepoolApp from '@/components/TidepoolApp';
+import LinguaChatApp from '@/components/TidepoolApp';
 
 export default function Page() {
-  return <TidepoolApp />;
+  return <LinguaChatApp />;
 }

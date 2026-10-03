@@ -10,17 +10,17 @@ import {
 } from '@/actions/profile';
 import {
   fetchUsersList, fetchSentRequests, fetchIncomingRequests,
-  respondFriendRequestAction, sendFriendRequestAction, fetchFriends,
+  respondFriendRequestAction, sendFriendRequestAction, fetchFriends, cancelFriendRequestAction
 } from '@/actions/friends';
 import {
-  fetchMessages, sendMessageAction,
+  fetchMessages, sendMessageAction, clearChatAction
 } from '@/actions/messages';
 import { signOutAction } from '@/actions/auth';
 import type {
   Db, DirectoryUser, Message, Profile, Screen, Tab, Theme, ToastItem, UiState,
 } from '@/types';
 
-const EMPTY_DB: Db = { friends: [], sent: [], incoming: [], messages: {} };
+const EMPTY_DB: Db = { friends: [], sent: [], incoming: [], messages: {}, unreadCounts: {} };
 const FRESH_UI: UiState = { tab: 'friends', chat: null, q: '' };
 
 export interface AppContextValue {
@@ -43,8 +43,10 @@ export interface AppContextValue {
   sendFriendRequest: (id: string) => Promise<void>;
   acceptFriendRequest: (id: string) => Promise<void>;
   rejectFriendRequest: (id: string) => Promise<void>;
+  cancelFriendRequest: (id: string) => Promise<void>;
   sendMessage: (id: string, text: string) => Promise<void>;
   saveProfile: (data: Omit<Profile, 'id'>) => Promise<void>;
+  clearChat: (id: string) => Promise<void>;
   allUsers: DirectoryUser[];
   refreshData: () => Promise<void>;
 }
@@ -80,6 +82,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       setScreen('app');
+      let unreadCounts = {};
+      try {
+        const stored = localStorage.getItem(`linguachat.unread.${profile.id}`);
+        if (stored) {
+          unreadCounts = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.error('Failed to parse unread counts', e);
+      }
+
       const [users, sentReqs, incomingReqs, friendsList] = await Promise.all([
         fetchUsersList(),
         fetchSentRequests(),
@@ -96,6 +108,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         sent: sentReqs,
         incoming: incomingReqs,
         messages: prev.messages || {}, // Fixed: Do not overwrite existing messages
+        unreadCounts,
       }));
     } catch (e) {
       console.error('Failed loading data:', e);
@@ -114,7 +127,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
 
   useEffect(() => {
-    const storedTheme = localStorage.getItem('tidepool.theme') as Theme | null;
+    const storedTheme = localStorage.getItem('linguachat.theme') as Theme | null;
     // eslint-disable-next-line
     setTheme(
       storedTheme || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light')
@@ -128,7 +141,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const profile = await getCurrentProfile();
         if (!profile) {
           setScreen('register');
-          setDb((d) => ({ ...d, session: true, me: profile || undefined }));
+          const googleMe: Partial<Profile> = {
+            id: user.id,
+            name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+            email: user.email,
+            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || '',
+          };
+          setDb((d) => ({ ...d, session: true, me: googleMe as Profile }));
           setLoading(false);
         } else {
           await loadData();
@@ -151,48 +170,86 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem('tidepool.theme', theme);
+    localStorage.setItem('linguachat.theme', theme);
   }, [theme, ready]);
 
-  // Realtime message subscription when chatting
   useEffect(() => {
-    if (!ui.chat || !db.me?.id) return;
-    const friendId = ui.chat;
-
-    if (!db.messages[friendId]) {
-      fetchMessages(friendId).then((msgs) => {
-        setDb((d) => ({
-          ...d,
-          messages: { ...d.messages, [friendId]: msgs },
-        }));
-      });
+    if (db.me?.id && db.unreadCounts) {
+      localStorage.setItem(`linguachat.unread.${db.me.id}`, JSON.stringify(db.unreadCounts));
     }
+  }, [db.unreadCounts, db.me?.id]);
+
+  const uiChatRef = useRef(ui.chat);
+  useEffect(() => { uiChatRef.current = ui.chat; }, [ui.chat]);
+
+  // Global messages Realtime subscription
+  useEffect(() => {
+    if (!db.me?.id) return;
+    const myId = db.me.id;
 
     const channel = supabase
-      .channel(`chat:${ui.chat}`)
+      .channel('public:messages')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `receiver_id=eq.${db.me.id}`,
+          filter: `receiver_id=eq.${myId}`,
         },
         (payload) => {
-          if (payload.new.sender_id === friendId) {
+          const msg = payload.new;
+          const senderId = msg.sender_id;
+
+          if (uiChatRef.current === senderId) {
+            // Chat is currently open
             const newMsg: Message = {
-              id: payload.new.id,
-              from: friendId,
-              text: payload.new.content,
-              t: new Date(payload.new.created_at).getTime(),
+              id: msg.id,
+              from: senderId,
+              text: msg.content,
+              t: new Date(msg.created_at).getTime(),
             };
-            setDb((d) => ({
-              ...d,
-              messages: {
-                ...d.messages,
-                [friendId]: [...(d.messages[friendId] || []), newMsg],
-              },
-            }));
+            setDb((d) => {
+              const msgTime = new Date(msg.created_at).getTime();
+              if (d.chatClears?.[senderId] && msgTime <= d.chatClears[senderId]) return d;
+
+              const existingMsgs = d.messages[senderId] || [];
+              if (existingMsgs.some((m) => m.id === msg.id)) return d;
+              return {
+                ...d,
+                messages: {
+                  ...d.messages,
+                  [senderId]: [...existingMsgs, newMsg],
+                },
+              };
+            });
+          } else {
+            // Chat is NOT open, increment unread count and add message for preview
+            const newMsg: Message = {
+              id: msg.id,
+              from: senderId,
+              text: msg.content,
+              t: new Date(msg.created_at).getTime(),
+            };
+
+            setDb((d) => {
+              const msgTime = new Date(msg.created_at).getTime();
+              if (d.chatClears?.[senderId] && msgTime <= d.chatClears[senderId]) return d;
+
+              const existingMsgs = d.messages[senderId] || [];
+              if (existingMsgs.some((m) => m.id === msg.id)) return d;
+              return {
+                ...d,
+                messages: {
+                  ...d.messages,
+                  [senderId]: [...existingMsgs, newMsg],
+                },
+                unreadCounts: {
+                  ...d.unreadCounts,
+                  [senderId]: (d.unreadCounts?.[senderId] || 0) + 1,
+                }
+              };
+            });
           }
         }
       )
@@ -201,8 +258,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ui.chat, db.me?.id, supabase]);
+  }, [db.me?.id, supabase]);
+
+  // When a chat is opened
+  useEffect(() => {
+    if (!ui.chat || !db.me?.id) return;
+    const friendId = ui.chat;
+
+    if (!db.messages[friendId]) {
+      fetchMessages(friendId).then(({ msgs, clearedAt }) => {
+        setDb((d) => ({
+          ...d,
+          messages: { ...d.messages, [friendId]: msgs },
+          chatClears: clearedAt ? { ...d.chatClears, [friendId]: clearedAt } : d.chatClears,
+        }));
+      });
+    }
+
+    // Mark as read immediately when chat is opened
+    setDb((d) => {
+      if (!d.unreadCounts[friendId]) return d; // already 0
+      return {
+        ...d,
+        unreadCounts: { ...d.unreadCounts, [friendId]: 0 }
+      };
+    });
+    
+  }, [ui.chat, db.me?.id]);
 
   // 🚀 Fixed: Realtime friend requests subscription
   const allUsersRef = useRef<DirectoryUser[]>([]);
@@ -282,6 +364,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 });
               }
             }
+          } else if (payload.new.status === 'rejected' || payload.new.status === 'cancelled') {
+            if (payload.new.sender_id === myId) {
+              setDb((d) => ({ ...d, sent: d.sent.filter(id => id !== payload.new.receiver_id) }));
+            } else if (payload.new.receiver_id === myId) {
+              setDb((d) => ({ ...d, incoming: d.incoming.filter(u => u.id !== payload.new.sender_id) }));
+            }
+          } else if (payload.new.status === 'pending') {
+            if (payload.new.sender_id === myId) {
+              setDb((d) => ({ ...d, sent: Array.from(new Set([...d.sent, payload.new.receiver_id])) }));
+            } else if (payload.new.receiver_id === myId) {
+              const senderUser = allUsersRef.current.find((u) => u.id === payload.new.sender_id);
+              if (senderUser) {
+                setDb((d) => {
+                  if (d.incoming.some(u => u.id === payload.new.sender_id)) return d;
+                  return { ...d, incoming: [...d.incoming, senderUser] };
+                });
+                toast('You have a new friend request from ' + senderUser.name.split(' ')[0]);
+              } else {
+                fetchIncomingRequests().then(reqs => setDb(d => ({...d, incoming: reqs})));
+              }
+            }
           }
         }
       )
@@ -325,10 +428,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.error('Logout error:', e);
     }
     
-    const currentTheme = localStorage.getItem('tidepool.theme');
+    const currentTheme = localStorage.getItem('linguachat.theme');
     localStorage.clear();
     sessionStorage.clear();
-    if (currentTheme) localStorage.setItem('tidepool.theme', currentTheme);
+    if (currentTheme) localStorage.setItem('linguachat.theme', currentTheme);
     
     setDb(EMPTY_DB);
     setUi(FRESH_UI);
@@ -380,8 +483,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const cancelFriendRequest = async (id: string) => {
+    try {
+      await cancelFriendRequestAction(id);
+      setDb((d) => ({ ...d, sent: d.sent.filter((x) => x !== id) }));
+      toast('Request cancelled');
+    } catch (e: unknown) {
+      toast(e instanceof Error ? e.message : 'Failed to cancel request');
+    }
+  };
+
   // Realtime Profiles (New Users) subscription
   useEffect(() => {
+    if (!db.me?.id) return;
+
     const channel = supabase
       .channel('public:profiles_changes')
       .on(
@@ -392,13 +507,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
           table: 'profiles',
         },
         (payload) => {
-          const newUser = payload.new as DirectoryUser;
+          if (payload.new.id === db.me?.id) return;
+
+          const newProfile = payload.new;
           
-          // ബാക്ക്ഗ്രൗണ്ടിൽ പുതിയ യൂസറെ allUsers ലിസ്റ്റിലേക്ക് ആഡ് ചെയ്യുന്നു (നോട്ടിഫിക്കേഷൻ ഇല്ലാതെ)
+          const newUser: DirectoryUser = {
+            id: newProfile.id,
+            name: newProfile.name,
+            username: newProfile.username,
+            age: Number(newProfile.age),
+            gender: newProfile.gender,
+            mobile: newProfile.mobile,
+            avatar_url: newProfile.avatar_url,
+            online: true,
+          };
+          
           setAllUsers((prevUsers) => {
-            // യൂസർ ഇതിനകം ലിസ്റ്റിൽ ഉണ്ടോ എന്ന് പരിശോധിക്കുന്നു (ഡ്യൂപ്ലിക്കേഷൻ ഒഴിവാക്കാൻ)
             if (prevUsers.some((u) => u.id === newUser.id)) return prevUsers;
-            
             return [...prevUsers, newUser];
           });
         }
@@ -408,9 +533,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, db.me?.id]);
 
   /* ----- chat ----- */
+  const clearChat = async (id: string) => {
+    try {
+      await clearChatAction(id);
+      setDb((d) => ({
+        ...d,
+        messages: { ...d.messages, [id]: [] },
+        chatClears: { ...d.chatClears, [id]: Date.now() },
+      }));
+      toast('Chat cleared');
+    } catch (e: unknown) {
+      toast(e instanceof Error ? e.message : 'Failed to clear chat');
+    }
+  };
+
   const sendMessage = async (id: string, text: string) => {
     try {
       const sentMsg = await sendMessageAction(id, text);
@@ -444,8 +583,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         db, ui, screen, theme, toasts, typingId, loading,
         toast, toggleTheme, handleGoogleLogin, registerUser, logout,
         go, openChat, closeChat, setQuery,
-        sendFriendRequest, acceptFriendRequest, rejectFriendRequest,
-        sendMessage, saveProfile, allUsers, refreshData: loadData,
+        sendFriendRequest, acceptFriendRequest, rejectFriendRequest, cancelFriendRequest,
+        sendMessage, saveProfile, clearChat, allUsers, refreshData: loadData,
       }}
     >
       {children}

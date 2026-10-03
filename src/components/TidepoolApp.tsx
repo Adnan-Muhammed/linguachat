@@ -12,7 +12,7 @@ function Screens() {
   return <WelcomeScreen />;
 }
 
-export default function TidepoolApp() {
+export default function LinguaChatApp() {
   return (
     <AppProvider>
       <Screens />

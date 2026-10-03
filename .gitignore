@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+#####    for excepting this file use ! before this file name in .gitignore file
+!.env.example  
 
 # vercel
 .vercel
@@ -43,7 +45,6 @@ next-env.d.ts
 # Markdown files
 AGENTS.md
 CLAUDE.md
-README.md
 
 # Extra JS files
 create-file.js

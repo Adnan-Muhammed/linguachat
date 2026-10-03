@@ -36,9 +36,7 @@ export default function ProfileEdit({ onDone }: { onDone: () => void }) {
     ) as Form;
 
     if (
-      v.name.length < 2 ||
       !USERNAME_RE.test(v.username) ||
-      +v.age < 13 ||
       !MOBILE_RE.test(v.mobile)
     )
       return toast('Check the highlighted details');
@@ -57,18 +55,28 @@ export default function ProfileEdit({ onDone }: { onDone: () => void }) {
     <div className="pwrap">
       <form className="pcard form" onSubmit={submit} noValidate>
         <h2>Edit profile</h2>
+        {me.avatar_url && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+            <img src={me.avatar_url} alt="Profile" style={{ width: 80, height: 80, borderRadius: '50%' }} />
+          </div>
+        )}
+        {me.email && (
+          <Field id="eEmail" label="Email">
+            <input id="eEmail" value={me.email} disabled />
+          </Field>
+        )}
         <Field id="eName" label="Name">
-          <input id="eName" value={f.name} onChange={set('name')} />
+          <input id="eName" value={f.name} disabled />
         </Field>
         <Field id="eUser" label="Username">
           <input id="eUser" value={f.username} onChange={set('username')} />
         </Field>
         <div className="row2">
           <Field id="eAge" label="Age">
-            <input id="eAge" type="number" value={f.age} onChange={set('age')} />
+            <input id="eAge" type="number" value={f.age} disabled />
           </Field>
           <Field id="eGender" label="Gender">
-            <select id="eGender" value={f.gender} onChange={set('gender')}>
+            <select id="eGender" value={f.gender} disabled>
               {GENDERS.map((g) => <option key={g}>{g}</option>)}
             </select>
           </Field>

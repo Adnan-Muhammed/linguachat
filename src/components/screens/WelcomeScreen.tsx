@@ -9,7 +9,7 @@ export default function WelcomeScreen() {
       <ThemeToggle />
       <div className="card">
         <div className="logo">{Icons.logo}</div>
-        <h1>Tidepool</h1>
+        <h1>linguaChat</h1>
         <p className="tag">Talk with the people you actually know.</p>
         <button className="gbtn" onClick={handleGoogleLogin}>
           <svg viewBox="0 0 24 24">

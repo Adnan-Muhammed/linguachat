@@ -11,6 +11,7 @@ type RequestRow = {
     age: string | number;
     gender?: string;
     mobile?: string;
+    avatar_url?: string;
   };
 };
 
@@ -34,6 +35,7 @@ export async function fetchUsersList(): Promise<DirectoryUser[]> {
     age: Number(p.age),
     gender: p.gender,
     mobile: p.mobile,
+    avatar_url: p.avatar_url,
     online: true,
   }));
 }
@@ -44,13 +46,50 @@ export async function sendFriendRequestAction(receiverId: string) {
 
   if (!user) throw new Error('Not authenticated');
 
+  const { data: existing } = await supabase
+    .from('friend_requests')
+    .select('id, status')
+    .eq('sender_id', user.id)
+    .eq('receiver_id', receiverId)
+    .single();
+
+  if (existing) {
+    if (existing.status === 'rejected' || existing.status === 'cancelled') {
+      const { error } = await supabase
+        .from('friend_requests')
+        .update({ status: 'pending', updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+      if (error) throw new Error(error.message);
+    }
+  } else {
+    const { error } = await supabase
+      .from('friend_requests')
+      .insert({
+        sender_id: user.id,
+        receiver_id: receiverId,
+        status: 'pending',
+      });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  return { success: true };
+}
+
+export async function cancelFriendRequestAction(receiverId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
   const { error } = await supabase
     .from('friend_requests')
-    .insert({
-      sender_id: user.id,
-      receiver_id: receiverId,
-      status: 'pending',
-    });
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('sender_id', user.id)
+    .eq('receiver_id', receiverId)
+    .eq('status', 'pending');
 
   if (error) {
     throw new Error(error.message);
@@ -95,6 +134,7 @@ export async function fetchIncomingRequests(): Promise<DirectoryUser[]> {
     age: Number(r.profiles.age),
     gender: r.profiles.gender,
     mobile: r.profiles.mobile,
+    avatar_url: r.profiles.avatar_url,
     online: true,
   }));
 }
@@ -152,6 +192,7 @@ export async function fetchFriends(): Promise<DirectoryUser[]> {
           age: Number(r.profiles.age),
           gender: r.profiles.gender,
           mobile: r.profiles.mobile,
+          avatar_url: r.profiles.avatar_url,
           online: true,
         });
       }
@@ -168,6 +209,7 @@ export async function fetchFriends(): Promise<DirectoryUser[]> {
           age: Number(r.profiles.age),
           gender: r.profiles.gender,
           mobile: r.profiles.mobile,
+          avatar_url: r.profiles.avatar_url,
           online: true,
         });
       }

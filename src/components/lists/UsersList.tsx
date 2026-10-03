@@ -5,7 +5,7 @@ import EmptyState from '../ui/EmptyState';
 import ListShell from '../layout/ListShell';
 
 function UserAction({ id }: { id: string }) {
-  const { db, openChat, go, sendFriendRequest } = useApp();
+  const { db, openChat, go, sendFriendRequest, cancelFriendRequest } = useApp();
   const isFriend = db.friends.some((f) => f.id === id);
   const isIncoming = db.incoming.some((inc) => inc.id === id);
   const isSent = db.sent.includes(id);
@@ -15,7 +15,7 @@ function UserAction({ id }: { id: string }) {
   if (isIncoming)
     return <button className="btn sm" onClick={() => go('requests')}>Respond</button>;
   if (isSent)
-    return <button className="btn ghost sm" disabled>Invitation sent</button>;
+    return <button className="btn ghost sm" onClick={() => cancelFriendRequest(id)}>Invitation sent</button>;
   return <button className="btn sm" onClick={() => sendFriendRequest(id)}>Invite</button>;
 }
 

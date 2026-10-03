@@ -5,12 +5,13 @@ import { Icons } from '../Icons';
 import Avatar from '../ui/Avatar';
 
 export default function ChatPanel({ friendId }: { friendId: string }) {
-  const { db, allUsers, typingId, closeChat, sendMessage } = useApp();
+  const { db, allUsers, typingId, closeChat, sendMessage, clearChat } = useApp();
   
   // Find target friend either in db.friends or allUsers
   const u = db.friends.find((f) => f.id === friendId) || allUsers.find((f) => f.id === friendId);
   const msgs = (u && db.messages[u.id]) || [];
   const [text, setText] = useState('');
+  const [clearing, setClearing] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,6 +28,15 @@ export default function ChatPanel({ friendId }: { friendId: string }) {
     setText('');
   };
 
+  const handleClear = async () => {
+    if (clearing) return;
+    if (window.confirm("Clear this chat?\n\nAll messages in this conversation will be cleared from your view. The other person will still have their messages.")) {
+      setClearing(true);
+      await clearChat(u.id);
+      setClearing(false);
+    }
+  };
+
   return (
     <>
       <header className="chead">
@@ -36,6 +46,16 @@ export default function ChatPanel({ friendId }: { friendId: string }) {
           <div className="nm">{u.name}</div>
           <div className="sb">@{u.username} · {u.online ? 'Online' : 'Offline'}</div>
         </div>
+        <button 
+          className="iconbtn" 
+          onClick={handleClear} 
+          disabled={clearing} 
+          aria-label="Clear Chat" 
+          title="Clear Chat"
+          style={{ marginLeft: 'auto', opacity: clearing ? 0.5 : 1 }}
+        >
+          {Icons.trash}
+        </button>
       </header>
 
       <div className="msgs" ref={listRef}>

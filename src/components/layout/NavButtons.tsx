@@ -13,6 +13,9 @@ const ITEMS: [Tab, string, ReactNode][] = [
 export default function NavButtons() {
   const { ui, db, go } = useApp();
   const n = db.incoming.length;
+  
+  const totalUnread = Object.values(db.unreadCounts || {}).reduce((a, b) => a + b, 0);
+
   return (
     <>
       {ITEMS.map(([key, label, icon]) => (
@@ -26,6 +29,7 @@ export default function NavButtons() {
           {icon}
           <span className="lbl">{label}</span>
           {key === 'requests' && n > 0 && <b className="badge">{n}</b>}
+          {key === 'friends' && totalUnread > 0 && <b className="badge">{totalUnread}</b>}
         </button>
       ))}
     </>

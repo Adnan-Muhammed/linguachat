@@ -14,4 +14,5 @@ export const Icons = {
   moon: <S><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z" /></S>,
   plus: <S><path d="M12 5v14M5 12h14" /></S>,
   logo: <S><path d="M3 12c3-5 6-5 9 0s6 5 9 0M3 18c3-5 6-5 9 0s6 5 9 0M3 6c3-5 6-5 9 0s6 5 9 0" /></S>,
+  trash: <S><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" /></S>,
 };

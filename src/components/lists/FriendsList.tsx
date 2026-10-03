@@ -18,19 +18,43 @@ export default function FriendsList() {
       ) : friends.length ? (
         friends.map((u) => {
           const last = (db.messages[u.id] || []).slice(-1)[0];
+          const unreadCount = db.unreadCounts?.[u.id] || 0;
           return (
             <div key={u.id} className={`item ${ui.chat === u.id ? 'sel' : ''}`} onClick={() => openChat(u.id)}>
               <Avatar user={u} dot />
               <div className="meta">
                 <div className="nm">{u.name}</div>
-                <div className="sb">{last ? last.text : '@' + u.username} · {u.online ? 'Online' : 'Offline'}</div>
+                <div className="sb">
+                  {last ? last.text : '@' + u.username} · {u.online ? 'Online' : 'Offline'}
+                </div>
               </div>
-              <button
-                className="btn ghost sm"
-                onClick={(e) => { e.stopPropagation(); openChat(u.id); }}
-              >
-                Message
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
+                <button
+                  className="btn ghost sm"
+                  style={{ margin: 0 }}
+                  onClick={(e) => { e.stopPropagation(); openChat(u.id); }}
+                >
+                  <span style={{ position: 'relative' }}>
+                    {unreadCount > 0 && (
+                      <b className="badge" style={{ 
+                        top: '-6px', 
+                        left: '-8px', 
+                        right: 'auto',
+                        background: '#25D366', 
+                        color: '#fff',
+                        width: '16px',
+                        minWidth: '16px',
+                        height: '16px',
+                        fontSize: '10px',
+                        padding: 0
+                      }}>
+                        {unreadCount}
+                      </b>
+                    )}
+                    Message
+                  </span>
+                </button>
+              </div>
             </div>
           );
         })

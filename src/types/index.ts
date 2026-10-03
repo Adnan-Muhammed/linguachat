@@ -10,6 +10,7 @@ export interface Profile {
   gender: string;
   mobile: string;
   email?: string;
+  avatar_url?: string;
 }
 
 export interface DirectoryUser {
@@ -20,6 +21,7 @@ export interface DirectoryUser {
   gender?: string;
   mobile?: string;
   online: boolean;
+  avatar_url?: string;
 }
 
 export interface Message {
@@ -36,6 +38,8 @@ export interface Db {
   sent: string[]; // target user IDs where current user sent request
   incoming: DirectoryUser[]; // users who sent request to current user
   messages: Record<string, Message[]>;
+  unreadCounts: Record<string, number>;
+  chatClears?: Record<string, number>;
 }
 
 export interface UiState {

@@ -47,7 +47,7 @@ body {
   --out-ink:#fff;
   --in:#eaf1ff;            /* incoming bubble */
   --chat-bg:#fff;          /* chat background */
-  --warn:#f5a524;--danger:#d64545;--r:14px;
+  --warn:#f5a524;--danger:#d64545;--r:14px; 
   --sh:0 1px 2px rgba(40,20,80,.06),0 6px 20px rgba(40,20,80,.08)}
 :root[data-theme=dark]{--bg:#120a1f;--panel:#1b1230;--panel2:#261a40;--ink:#efeaff;--mute:#a79cc4;--line:#33264f;--acc:#a86bff;--acc-ink:#1a0b33;--acc-soft:#2f1f52;--hdr:#5a1fb0;--nav:#4a1a94;--out:linear-gradient(135deg,#7a2fd0,#a03cc4);--in:#2a2046;--chat-bg:#160e28;--sh:0 1px 2px #0006}
 *{box-sizing:border-box;margin:0}

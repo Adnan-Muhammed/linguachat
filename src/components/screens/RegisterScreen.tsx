@@ -36,7 +36,7 @@ export default function RegisterScreen() {
       username: [USERNAME_RE.test(v.username), '3–20 letters, numbers, _ or .'],
       age: [+v.age >= 13 && +v.age <= 120, 'Enter an age between 13 and 120'],
       gender: [!!v.gender, 'Select an option'],
-      mobile: [MOBILE_RE.test(v.mobile), 'Enter a valid mobile number'],
+      mobile: [MOBILE_RE.test(v.mobile), 'Must be exactly 10 digits'],
     };
 
     const next: Errors = {};
@@ -54,6 +54,7 @@ export default function RegisterScreen() {
       age: +v.age,
       gender: v.gender,
       mobile: v.mobile,
+      avatar_url: db.me?.avatar_url,
     });
     setSubmitting(false);
   };
@@ -66,7 +67,7 @@ export default function RegisterScreen() {
         <p className="sub">Signed in as {email}</p>
 
         <Field id="rName" label="Name" error={errs.name}>
-          <input id="rName" value={f.name} onChange={set('name')} autoComplete="name" />
+          <input id="rName" value={f.name} disabled />
         </Field>
         <Field id="rUser" label="Username" error={errs.username}>
           <input id="rUser" value={f.username} onChange={set('username')} placeholder="letters, numbers, _" autoComplete="username" />

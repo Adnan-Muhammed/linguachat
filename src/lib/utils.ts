@@ -16,5 +16,5 @@ export const matches = (
 ): boolean => !q || (u.name + u.username).toLowerCase().includes(q.toLowerCase());
 
 export const USERNAME_RE = /^[a-zA-Z0-9_.]{3,20}$/;
-export const MOBILE_RE = /^\+?[\d\s-]{7,16}$/;
+export const MOBILE_RE = /^\d{10}$/;
 export const GENDERS = ['Female', 'Male', 'Non-binary', 'Prefer not to say'] as const;
