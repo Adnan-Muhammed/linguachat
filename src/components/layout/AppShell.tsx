@@ -4,7 +4,7 @@ import Rail from './Rail';
 import ListPanel from './ListPanel';
 import MainPanel from './MainPanel';
 import BottomNav from './BottomNav';
-
+ 
 export default function AppShell() {
   const { ui, go } = useApp();
   return (

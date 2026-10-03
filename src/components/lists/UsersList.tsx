@@ -3,6 +3,7 @@ import { matches } from '@/lib/utils';
 import Avatar from '../ui/Avatar';
 import EmptyState from '../ui/EmptyState';
 import ListShell from '../layout/ListShell';
+import Spinner from '../ui/Spinner';
 
 function UserAction({ id }: { id: string }) {
   const { db, openChat, go, sendFriendRequest, cancelFriendRequest } = useApp();
@@ -20,12 +21,16 @@ function UserAction({ id }: { id: string }) {
 }
 
 export default function UsersList() {
-  const { ui, allUsers } = useApp();
+  const { ui, allUsers, isFetchingUsers } = useApp();
   const users = allUsers.filter((u) => matches(u, ui.q));
 
   return (
     <ListShell title="Users" search> 
-      {users.length ? (
+      {isFetchingUsers ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}>
+          <Spinner size={32} color="var(--acc)" />
+        </div>
+      ) : users.length ? (
         users.map((u) => (
           <div key={u.id} className="item">
             <Avatar user={u} />

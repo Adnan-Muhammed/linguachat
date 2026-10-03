@@ -4,6 +4,7 @@ import WelcomeScreen from './screens/WelcomeScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import AppShell from './layout/AppShell';
 import Toasts from './ui/Toasts';
+import Spinner from './ui/Spinner';
 
 function Screens() {
   const { screen, loading } = useApp();
@@ -11,7 +12,7 @@ function Screens() {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw' }}>
-        <div>Loading...</div> 
+        <Spinner size={48} color="var(--acc)" />
       </div>
     );
   }

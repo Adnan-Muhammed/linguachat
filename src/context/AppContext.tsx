@@ -19,6 +19,7 @@ import { signOutAction } from '@/actions/auth';
 import type {
   Db, DirectoryUser, Message, Profile, Screen, Tab, Theme, ToastItem, UiState,
 } from '@/types';
+import Spinner from '@/components/ui/Spinner';
 
 const EMPTY_DB: Db = { friends: [], sent: [], incoming: [], messages: {}, unreadCounts: {} };
 const FRESH_UI: UiState = { tab: 'friends', chat: null, q: '' };
@@ -49,6 +50,7 @@ export interface AppContextValue {
   clearChat: (id: string) => Promise<void>;
   allUsers: DirectoryUser[];
   refreshData: () => Promise<void>;
+  isFetchingUsers: boolean;
 }
 
 const AppCtx = createContext<AppContextValue | null>(null);
@@ -69,6 +71,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [typingId, setTypingId] = useState<string | null>(null);
+  const [isFetchingUsers, setIsFetchingUsers] = useState(false);
 
   const supabase = createClient();
 
@@ -395,7 +398,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
-    return () => {
+    return () => { 
       supabase.removeChannel(channel);
     };
   }, [db.me?.id, supabase, toast]);
@@ -456,10 +459,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUi({ tab, chat: null, q: '' });
     if (tab === 'users' && !usersFetchedRef.current) {
       usersFetchedRef.current = true;
+      setIsFetchingUsers(true);
       fetchUsersList().then(users => {
         setAllUsers(users);
+        setIsFetchingUsers(false);
       }).catch(e => {
         usersFetchedRef.current = false;
+        setIsFetchingUsers(false);
         console.error('Failed to fetch users:', e);
       });
     }
@@ -597,7 +603,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   if (!ready) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw' }}>
-        <div>Loading...</div>
+        <Spinner size={48} color="var(--acc)" />
       </div>
     );
   }
@@ -609,7 +615,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         toast, toggleTheme, handleGoogleLogin, registerUser, logout,
         go, openChat, closeChat, setQuery,
         sendFriendRequest, acceptFriendRequest, rejectFriendRequest, cancelFriendRequest,
-        sendMessage, saveProfile, clearChat, allUsers, refreshData: loadData,
+        sendMessage, saveProfile, clearChat, allUsers, refreshData: loadData, isFetchingUsers,
       }}
     >
       {children}
