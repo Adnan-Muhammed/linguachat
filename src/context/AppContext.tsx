@@ -72,9 +72,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const supabase = createClient();
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (existingProfile?: Profile | null) => {
     try {
-      const profile = await getCurrentProfile();
+      const profile = existingProfile !== undefined ? existingProfile : await getCurrentProfile();
       if (!profile) {
         setScreen('welcome');
         setLoading(false);
@@ -92,27 +92,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error('Failed to parse unread counts', e);
       }
 
-      const [users, sentReqs, incomingReqs, friendsList] = await Promise.all([
-        fetchUsersList(),
-        fetchSentRequests(),
-        fetchIncomingRequests(),
-        fetchFriends(),
-      ]);
+      const friendsList = await fetchFriends();
 
-      setAllUsers(users);
       setDb((prev) => ({
         ...prev,
         me: profile,
         session: true,
         friends: friendsList,
-        sent: sentReqs,
-        incoming: incomingReqs,
         messages: prev.messages || {}, // Fixed: Do not overwrite existing messages
         unreadCounts,
       }));
+      setLoading(false);
+
+      // Background Load
+      Promise.all([
+        fetchSentRequests(),
+        fetchIncomingRequests(),
+      ]).then(([sentReqs, incomingReqs]) => {
+        setDb((prev) => ({
+          ...prev,
+          sent: sentReqs,
+          incoming: incomingReqs,
+        }));
+      }).catch(e => console.error('Failed loading background data:', e));
+
     } catch (e) {
       console.error('Failed loading data:', e);
-    } finally {
       setLoading(false);
     }
   }, []);
@@ -150,7 +155,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setDb((d) => ({ ...d, session: true, me: googleMe as Profile }));
           setLoading(false);
         } else {
-          await loadData();
+          await loadData(profile);
           setUi((u) => ({ ...u, tab: 'friends' }));
         }
       } else {
@@ -412,7 +417,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       await createOrUpdateProfile(meData);
       toast('Profile saved');
-      await loadData();
+      await loadData(meData);
       setUi(FRESH_UI);
       setScreen('app');
     } catch (e: unknown) {
@@ -437,14 +442,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUi(FRESH_UI);
     setTypingId(null);
     setAllUsers([]);
+    usersFetchedRef.current = false;
     setToasts([]);
     toast('Logged out');
     setScreen('welcome');
     window.location.replace('/');
   };
 
+  const usersFetchedRef = useRef(false);
+
   /* ----- navigation ----- */
-  const go = (tab: Tab) => setUi({ tab, chat: null, q: '' });
+  const go = (tab: Tab) => {
+    setUi({ tab, chat: null, q: '' });
+    if (tab === 'users' && !usersFetchedRef.current) {
+      usersFetchedRef.current = true;
+      fetchUsersList().then(users => {
+        setAllUsers(users);
+      }).catch(e => {
+        usersFetchedRef.current = false;
+        console.error('Failed to fetch users:', e);
+      });
+    }
+  };
   const openChat = (id: string) => setUi((u) => ({ ...u, chat: id, tab: 'friends' }));
   const closeChat = () => setUi((u) => ({ ...u, chat: null }));
   const setQuery = (q: string) => setUi((u) => ({ ...u, q }));
@@ -575,7 +594,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  if (!ready) return null;
+  if (!ready) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw' }}>
+        <div>Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <AppCtx.Provider

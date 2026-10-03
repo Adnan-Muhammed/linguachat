@@ -37,14 +37,14 @@ export default function ChatPanel({ friendId }: { friendId: string }) {
     }
   };
 
-  return (
+  return ( 
     <>
       <header className="chead">
         <button className="iconbtn back" onClick={closeChat} aria-label="Back">{Icons.back}</button>
-        <Avatar user={u} dot />
+        <Avatar user={u} /> 
         <div className="meta">
           <div className="nm">{u.name}</div>
-          <div className="sb">@{u.username} · {u.online ? 'Online' : 'Offline'}</div>
+          <div className="sb">@{u.username}</div>
         </div>
         <button 
           className="iconbtn" 

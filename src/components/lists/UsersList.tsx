@@ -24,14 +24,14 @@ export default function UsersList() {
   const users = allUsers.filter((u) => matches(u, ui.q));
 
   return (
-    <ListShell title="Users" search>
+    <ListShell title="Users" search> 
       {users.length ? (
         users.map((u) => (
           <div key={u.id} className="item">
-            <Avatar user={u} dot />
-            <div className="meta">
+            <Avatar user={u} />
+            <div className="meta"> 
               <div className="nm">{u.name}</div>
-              <div className="sb">@{u.username} · {u.age} · {u.online ? 'Online' : 'Offline'}</div>
+              <div className="sb">@{u.username} · {u.age}</div>
             </div>
             <UserAction id={u.id} />
           </div>
