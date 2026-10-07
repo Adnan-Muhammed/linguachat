@@ -46,34 +46,20 @@ export async function sendFriendRequestAction(receiverId: string) {
 
   if (!user) throw new Error('Not authenticated');
 
-  const { data: existing } = await supabase
+  // Single upsert — avoids the SELECT + INSERT/UPDATE round-trip
+  const { error } = await supabase
     .from('friend_requests')
-    .select('id, status')
-    .eq('sender_id', user.id)
-    .eq('receiver_id', receiverId)
-    .single();
-
-  if (existing) {
-    if (existing.status === 'rejected' || existing.status === 'cancelled') {
-      const { error } = await supabase
-        .from('friend_requests')
-        .update({ status: 'pending', updated_at: new Date().toISOString() })
-        .eq('id', existing.id);
-      if (error) throw new Error(error.message);
-    }
-  } else {
-    const { error } = await supabase
-      .from('friend_requests')
-      .insert({
+    .upsert(
+      {
         sender_id: user.id,
         receiver_id: receiverId,
         status: 'pending',
-      });
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'sender_id,receiver_id' }
+    );
 
-    if (error) {
-      throw new Error(error.message);
-    }
-  }
+  if (error) throw new Error(error.message);
 
   return { success: true };
 }
