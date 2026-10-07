@@ -337,62 +337,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
           event: 'UPDATE',
           schema: 'public',
           table: 'friend_requests',
+          filter: `sender_id=eq.${myId}`
         },
         (payload) => {
           if (payload.new.status === 'accepted') {
-            if (payload.new.sender_id === myId) {
-              const receiverId = payload.new.receiver_id;
-              const receiverUser = allUsersRef.current.find((u) => u.id === receiverId);
-              
-              if (receiverUser) {
-                setDb((d) => {
-                  if (d.friends.some(f => f.id === receiverId)) return d;
-                  return {
-                    ...d,
-                    sent: d.sent.filter(id => id !== receiverId),
-                    friends: [...d.friends, receiverUser]
-                  };
-                });
-                toast('Your friend request was accepted!');
-              } else {
-                fetchFriends().then(f => setDb(d => ({...d, friends: f})));
-                toast('Your friend request was accepted!');
-              }
-            } else if (payload.new.receiver_id === myId) {
-              const senderId = payload.new.sender_id;
-              const senderUser = allUsersRef.current.find((u) => u.id === senderId);
-
-              if (senderUser) {
-                setDb((d) => {
-                  if (d.friends.some(f => f.id === senderId)) return d;
-                  return {
-                    ...d,
-                    incoming: d.incoming.filter(u => u.id !== senderId),
-                    friends: [...d.friends, senderUser]
-                  };
-                });
-              }
+            const receiverId = payload.new.receiver_id;
+            const receiverUser = allUsersRef.current.find((u) => u.id === receiverId);
+            
+            if (receiverUser) {
+              setDb((d) => {
+                if (d.friends.some(f => f.id === receiverId)) return d;
+                return {
+                  ...d,
+                  sent: d.sent.filter(id => id !== receiverId),
+                  friends: [...d.friends, receiverUser]
+                };
+              });
+              toast('Your friend request was accepted!');
+            } else {
+              fetchFriends().then(f => setDb(d => ({...d, friends: f})));
+              toast('Your friend request was accepted!');
             }
           } else if (payload.new.status === 'rejected' || payload.new.status === 'cancelled') {
-            if (payload.new.sender_id === myId) {
-              setDb((d) => ({ ...d, sent: d.sent.filter(id => id !== payload.new.receiver_id) }));
-            } else if (payload.new.receiver_id === myId) {
-              setDb((d) => ({ ...d, incoming: d.incoming.filter(u => u.id !== payload.new.sender_id) }));
-            }
+            setDb((d) => ({ ...d, sent: d.sent.filter(id => id !== payload.new.receiver_id) }));
           } else if (payload.new.status === 'pending') {
-            if (payload.new.sender_id === myId) {
-              setDb((d) => ({ ...d, sent: Array.from(new Set([...d.sent, payload.new.receiver_id])) }));
-            } else if (payload.new.receiver_id === myId) {
-              const senderUser = allUsersRef.current.find((u) => u.id === payload.new.sender_id);
-              if (senderUser) {
-                setDb((d) => {
-                  if (d.incoming.some(u => u.id === payload.new.sender_id)) return d;
-                  return { ...d, incoming: [...d.incoming, senderUser] };
-                });
-                toast('You have a new friend request from ' + senderUser.name.split(' ')[0]);
-              } else {
-                fetchIncomingRequests().then(reqs => setDb(d => ({...d, incoming: reqs})));
-              }
+            setDb((d) => ({ ...d, sent: Array.from(new Set([...d.sent, payload.new.receiver_id])) }));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'friend_requests',
+          filter: `receiver_id=eq.${myId}`
+        },
+        (payload) => {
+          if (payload.new.status === 'accepted') {
+            const senderId = payload.new.sender_id;
+            const senderUser = allUsersRef.current.find((u) => u.id === senderId);
+
+            if (senderUser) {
+              setDb((d) => {
+                if (d.friends.some(f => f.id === senderId)) return d;
+                return {
+                  ...d,
+                  incoming: d.incoming.filter(u => u.id !== senderId),
+                  friends: [...d.friends, senderUser]
+                };
+              });
+            }
+          } else if (payload.new.status === 'rejected' || payload.new.status === 'cancelled') {
+            setDb((d) => ({ ...d, incoming: d.incoming.filter(u => u.id !== payload.new.sender_id) }));
+          } else if (payload.new.status === 'pending') {
+            const senderUser = allUsersRef.current.find((u) => u.id === payload.new.sender_id);
+            if (senderUser) {
+              setDb((d) => {
+                if (d.incoming.some(u => u.id === payload.new.sender_id)) return d;
+                return { ...d, incoming: [...d.incoming, senderUser] };
+              });
+              toast('You have a new friend request from ' + senderUser.name.split(' ')[0]);
+            } else {
+              fetchIncomingRequests().then(reqs => setDb(d => ({...d, incoming: reqs})));
             }
           }
         }
@@ -519,47 +526,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Realtime Profiles (New Users) subscription
-  useEffect(() => {
-    if (!db.me?.id) return;
 
-    const channel = supabase
-      .channel('public:profiles_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'profiles',
-        },
-        (payload) => {
-          if (payload.new.id === db.me?.id) return;
-
-          const newProfile = payload.new;
-          
-          const newUser: DirectoryUser = {
-            id: newProfile.id,
-            name: newProfile.name,
-            username: newProfile.username,
-            age: Number(newProfile.age),
-            gender: newProfile.gender,
-            mobile: newProfile.mobile,
-            avatar_url: newProfile.avatar_url,
-            online: true,
-          };
-          
-          setAllUsers((prevUsers) => {
-            if (prevUsers.some((u) => u.id === newUser.id)) return prevUsers;
-            return [...prevUsers, newUser];
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [supabase, db.me?.id]);
 
   /* ----- chat ----- */
   const clearChat = async (id: string) => {
