@@ -21,11 +21,12 @@ export async function fetchMessages(friendId: string): Promise<{ msgs: Message[]
 
   let query = supabase
     .from('messages')
-    .select('*')
+    .select('id, sender_id, content, created_at')
     .or(
       `and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id})`
     )
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .limit(200);
 
   if (clearedAtStr) {
     query = query.gt('created_at', clearedAtStr);
@@ -77,27 +78,16 @@ export async function clearChatAction(friendId: string): Promise<void> {
 
   if (!user) throw new Error('Not authenticated');
 
-  // Check if row already exists
-  const { data: existing } = await supabase
+  // Single upsert — avoids the SELECT + INSERT/UPDATE round-trip
+  const { error } = await supabase
     .from('chat_clears')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('other_user_id', friendId)
-    .maybeSingle();
-
-  if (existing) {
-    const { error } = await supabase
-      .from('chat_clears')
-      .update({ cleared_at: new Date().toISOString() })
-      .eq('id', existing.id);
-    if (error) throw new Error(error.message);
-  } else {
-    const { error } = await supabase
-      .from('chat_clears')
-      .insert({
+    .upsert(
+      {
         user_id: user.id,
         other_user_id: friendId,
-      });
-    if (error) throw new Error(error.message);
-  }
+        cleared_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,other_user_id' }
+    );
+  if (error) throw new Error(error.message);
 }

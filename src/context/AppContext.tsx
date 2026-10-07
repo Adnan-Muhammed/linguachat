@@ -2,7 +2,7 @@
 
 'use client';
 import {
-  createContext, useCallback, useContext, useEffect, useState, useRef, type ReactNode,
+  createContext, useCallback, useContext, useEffect, useMemo, useState, useRef, type ReactNode,
 } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -13,7 +13,7 @@ import {
   respondFriendRequestAction, sendFriendRequestAction, fetchFriends, cancelFriendRequestAction
 } from '@/actions/friends';
 import {
-  fetchMessages, sendMessageAction, clearChatAction
+  fetchMessages, clearChatAction
 } from '@/actions/messages';
 import { signOutAction } from '@/actions/auth';
 import type {
@@ -73,7 +73,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [typingId, setTypingId] = useState<string | null>(null);
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
 
-  const supabase = createClient();
+  // Stable reference prevents Realtime subscription churn on re-renders
+  const supabase = useMemo(() => createClient(), []);
 
   const loadData = useCallback(async (existingProfile?: Profile | null) => {
     try {
@@ -576,15 +577,50 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const sendMessage = async (id: string, text: string) => {
+    if (!db.me?.id) return;
+
+    // Optimistic UI: show message instantly before DB confirms
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
+    const optimisticMsg: Message = { id: tempId, from: 'me', text, t: Date.now() };
+
+    setDb((d) => ({
+      ...d,
+      messages: { ...d.messages, [id]: [...(d.messages[id] || []), optimisticMsg] },
+    }));
+
     try {
-      const sentMsg = await sendMessageAction(id, text);
-      if (sentMsg) {
-        setDb((d) => ({
-          ...d,
-          messages: { ...d.messages, [id]: [...(d.messages[id] || []), sentMsg] },
-        }));
-      }
+      // Direct browser client insert — skips Vercel serverless function
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({ sender_id: db.me!.id, receiver_id: id, content: text })
+        .select('id, content, created_at')
+        .single();
+
+      if (error || !data) throw new Error(error?.message || 'Failed to send message');
+
+      // Replace temp message with confirmed DB message
+      const confirmedMsg: Message = {
+        id: data.id,
+        from: 'me',
+        text: data.content,
+        t: new Date(data.created_at).getTime(),
+      };
+      setDb((d) => ({
+        ...d,
+        messages: {
+          ...d.messages,
+          [id]: (d.messages[id] || []).map((m) => m.id === tempId ? confirmedMsg : m),
+        },
+      }));
     } catch (e: unknown) {
+      // Remove optimistic message on failure
+      setDb((d) => ({
+        ...d,
+        messages: {
+          ...d.messages,
+          [id]: (d.messages[id] || []).filter((m) => m.id !== tempId),
+        },
+      }));
       toast(e instanceof Error ? e.message : 'Failed to send message');
     }
   };
@@ -600,6 +636,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const ctxValue = useMemo<AppContextValue>(() => ({
+    db, ui, screen, theme, toasts, typingId, loading,
+    toast, toggleTheme, handleGoogleLogin, registerUser, logout,
+    go, openChat, closeChat, setQuery,
+    sendFriendRequest, acceptFriendRequest, rejectFriendRequest, cancelFriendRequest,
+    sendMessage, saveProfile, clearChat, allUsers, refreshData: loadData, isFetchingUsers,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [
+    db, ui, screen, theme, toasts, typingId, loading,
+    allUsers, isFetchingUsers,
+    // stable callbacks (useCallback or defined once)
+    toast, toggleTheme, loadData,
+  ]);
+
   if (!ready) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw' }}>
@@ -609,15 +659,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AppCtx.Provider
-      value={{ 
-        db, ui, screen, theme, toasts, typingId, loading,
-        toast, toggleTheme, handleGoogleLogin, registerUser, logout,
-        go, openChat, closeChat, setQuery,
-        sendFriendRequest, acceptFriendRequest, rejectFriendRequest, cancelFriendRequest,
-        sendMessage, saveProfile, clearChat, allUsers, refreshData: loadData, isFetchingUsers,
-      }}
-    >
+    <AppCtx.Provider value={ctxValue}> 
       {children}
     </AppCtx.Provider>
   );

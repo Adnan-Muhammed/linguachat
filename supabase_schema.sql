@@ -186,26 +186,64 @@ CREATE POLICY "Users can send messages"
 
 
 -- ============================================================
+-- 8b. CHAT CLEARS TABLE
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.chat_clears (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  other_user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  cleared_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, other_user_id)
+);
+
+ALTER TABLE public.chat_clears ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own chat clears"
+  ON public.chat_clears
+  FOR ALL
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+
+-- ============================================================
 -- 9. INDEXES
 -- ============================================================
 
-CREATE INDEX idx_friend_requests_sender
+CREATE INDEX IF NOT EXISTS idx_friend_requests_sender
   ON public.friend_requests(sender_id);
 
-CREATE INDEX idx_friend_requests_receiver
+CREATE INDEX IF NOT EXISTS idx_friend_requests_receiver
   ON public.friend_requests(receiver_id);
 
-CREATE INDEX idx_friend_requests_status
+CREATE INDEX IF NOT EXISTS idx_friend_requests_status
   ON public.friend_requests(status);
 
-CREATE INDEX idx_messages_sender
+-- Composite indexes for friend requests
+CREATE INDEX IF NOT EXISTS idx_friend_requests_sender_status
+  ON public.friend_requests(sender_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_friend_requests_receiver_status
+  ON public.friend_requests(receiver_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_messages_sender
   ON public.messages(sender_id);
 
-CREATE INDEX idx_messages_receiver
+CREATE INDEX IF NOT EXISTS idx_messages_receiver
   ON public.messages(receiver_id);
 
-CREATE INDEX idx_messages_created_at
+CREATE INDEX IF NOT EXISTS idx_messages_created_at
   ON public.messages(created_at);
+
+-- Composite index for fast conversation lookups & ordering
+CREATE INDEX IF NOT EXISTS idx_messages_conversation
+  ON public.messages(sender_id, receiver_id, created_at);
+
+-- Index for chat clear lookups
+CREATE INDEX IF NOT EXISTS idx_chat_clears_user_other
+  ON public.chat_clears(user_id, other_user_id);
+
 
 
 -- ============================================================
