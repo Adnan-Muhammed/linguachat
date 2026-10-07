@@ -636,14 +636,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  if (!ready) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw' }}>
-        <Spinner size={48} color="var(--acc)" />
-      </div>
-    );
-  }
-
   const ctxValue = useMemo<AppContextValue>(() => ({
     db, ui, screen, theme, toasts, typingId, loading,
     toast, toggleTheme, handleGoogleLogin, registerUser, logout,
@@ -657,6 +649,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // stable callbacks (useCallback or defined once)
     toast, toggleTheme, loadData,
   ]);
+
+  if (!ready) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw' }}>
+        <Spinner size={48} color="var(--acc)" />
+      </div>
+    );
+  }
 
   return (
     <AppCtx.Provider value={ctxValue}> 
