@@ -22,6 +22,10 @@ export function useVideoCall() {
   const targetChannelRef = useRef<RealtimeChannel | null>(null);
   const ringTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
+  
+  const signalQueueRef = useRef<{targetId: string, payload: SignalPayload}[]>([]);
+  const isJoinedRef = useRef(false);
+  const isJoiningRef = useRef(false);
 
   const statusRef = useRef(status);
   useEffect(() => { statusRef.current = status; }, [status]);
@@ -46,6 +50,10 @@ export function useVideoCall() {
       ringTimeoutRef.current = null;
     }
     iceCandidateQueue.current = [];
+    signalQueueRef.current = [];
+    isJoinedRef.current = false;
+    isJoiningRef.current = false;
+
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
@@ -62,14 +70,39 @@ export function useVideoCall() {
   }, [supabase, stopTracks]);
 
   const sendSignal = useCallback((targetId: string, payload: SignalPayload) => {
-    if (targetChannelRef.current && targetChannelRef.current.state === 'joined') {
+    const channelName = `${CHANNEL_PREFIX}${targetId}`;
+    
+    // If the target changed, clean up old channel
+    if (targetChannelRef.current && targetChannelRef.current.topic !== `realtime:${channelName}`) {
+      supabase.removeChannel(targetChannelRef.current);
+      targetChannelRef.current = null;
+      isJoinedRef.current = false;
+      isJoiningRef.current = false;
+    }
+
+    if (isJoinedRef.current && targetChannelRef.current) {
       targetChannelRef.current.send({ type: 'broadcast', event: 'signal', payload });
-    } else {
-      const ch = supabase.channel(`${CHANNEL_PREFIX}${targetId}`);
+      return;
+    }
+
+    signalQueueRef.current.push({ targetId, payload });
+
+    if (!targetChannelRef.current && !isJoiningRef.current) {
+      isJoiningRef.current = true;
+      const ch = supabase.channel(channelName);
       targetChannelRef.current = ch;
+      
       ch.subscribe((state) => {
         if (state === 'SUBSCRIBED') {
-          ch.send({ type: 'broadcast', event: 'signal', payload });
+          isJoinedRef.current = true;
+          isJoiningRef.current = false;
+          
+          const toSend = signalQueueRef.current;
+          signalQueueRef.current = [];
+          
+          toSend.forEach(item => {
+            ch.send({ type: 'broadcast', event: 'signal', payload: item.payload });
+          });
         }
       });
     }
@@ -114,16 +147,20 @@ export function useVideoCall() {
     };
 
     pc.ontrack = (event) => {
-      setRemoteStream((prev) => {
-        if (event.streams && event.streams[0]) {
-          return new MediaStream(event.streams[0].getTracks());
-        }
-        const tracks = prev ? prev.getTracks() : [];
-        if (!tracks.find(t => t.id === event.track.id)) {
-          tracks.push(event.track);
-        }
-        return new MediaStream(tracks);
-      });
+      if (event.streams && event.streams[0]) {
+        setRemoteStream(prev => {
+          if (prev === event.streams[0]) return prev;
+          return event.streams[0];
+        });
+      } else {
+        setRemoteStream((prev) => {
+          if (prev) {
+             prev.addTrack(event.track);
+             return prev;
+          }
+          return new MediaStream([event.track]);
+        });
+      }
     };
 
     pc.oniceconnectionstatechange = () => {
