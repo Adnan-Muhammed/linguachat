@@ -22,7 +22,7 @@ export default function VideoCallScreen() {
       localVideoRef.current.srcObject = localStream;
       localVideoRef.current.play().catch(e => console.error('Local video play error:', e));
     }
-  }, [localStream]);
+  }, [localStream, status]);
 
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
@@ -41,7 +41,7 @@ export default function VideoCallScreen() {
         track.onunmute = playVideo;
       });
     }
-  }, [remoteStream]);
+  }, [remoteStream, status]);
 
   if (status !== 'calling' && status !== 'connected') return null;
 

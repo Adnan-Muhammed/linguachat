@@ -363,6 +363,9 @@ export function useVideoCall() {
     }
   }, [me, sendSignal, cleanupCall, toast, createPeerConnection, processIceQueue]);
 
+  const handleSignalRef = useRef(handleSignal);
+  useEffect(() => { handleSignalRef.current = handleSignal; }, [handleSignal]);
+
   useEffect(() => {
     if (!me?.id) return;
     
@@ -370,7 +373,7 @@ export function useVideoCall() {
     const channel = supabase.channel(channelName);
     
     channel.on('broadcast', { event: 'signal' }, ({ payload }) => {
-      handleSignal(payload as SignalPayload);
+      handleSignalRef.current(payload as SignalPayload);
     }).subscribe();
 
     personalChannelRef.current = channel;
@@ -378,7 +381,10 @@ export function useVideoCall() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [me?.id, supabase, handleSignal]);
+  }, [me?.id, supabase]);
+
+  const cleanupCallRef = useRef(cleanupCall);
+  useEffect(() => { cleanupCallRef.current = cleanupCall; }, [cleanupCall]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -389,9 +395,15 @@ export function useVideoCall() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      cleanupCall();
     };
-  }, [me, sendSignal, cleanupCall]);
+  }, [me, sendSignal]);
+
+  useEffect(() => {
+    return () => {
+      // Only clean up when the hook actually unmounts (component destroys)
+      cleanupCallRef.current();
+    };
+  }, []);
 
   return {
     status,
