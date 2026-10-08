@@ -147,16 +147,21 @@ export function useVideoCall() {
     };
 
     pc.ontrack = (event) => {
-      setRemoteStream((prev) => {
-        if (event.streams && event.streams[0]) {
-          return new MediaStream(event.streams[0].getTracks());
-        }
-        const tracks = prev ? prev.getTracks() : [];
-        if (!tracks.find(t => t.id === event.track.id)) {
-          tracks.push(event.track);
-        }
-        return new MediaStream(tracks);
-      });
+      if (event.streams && event.streams[0]) {
+        const stream = event.streams[0];
+        setRemoteStream(new MediaStream(stream.getTracks()));
+        
+        // Listen for future tracks added to this stream natively by the browser
+        stream.onaddtrack = () => {
+          setRemoteStream(new MediaStream(stream.getTracks()));
+        };
+      } else {
+        setRemoteStream((prev) => {
+          const newStream = new MediaStream(prev ? prev.getTracks() : []);
+          newStream.addTrack(event.track);
+          return newStream;
+        });
+      }
     };
 
     pc.oniceconnectionstatechange = () => {

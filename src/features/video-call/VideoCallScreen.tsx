@@ -27,7 +27,19 @@ export default function VideoCallScreen() {
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch(e => console.error('Remote video play error:', e));
+      
+      const playVideo = () => {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.play().catch(e => console.error('Remote video play error:', e));
+        }
+      };
+
+      playVideo();
+
+      // Safari/iOS sometimes requires a forced play when a track un-mutes (receives data)
+      remoteStream.getTracks().forEach(track => {
+        track.onunmute = playVideo;
+      });
     }
   }, [remoteStream]);
 
