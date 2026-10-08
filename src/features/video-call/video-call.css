@@ -1,0 +1,326 @@
+/* ===== Video Call Feature — Scoped Styles ===== */
+
+/* --- Overlay (shared by incoming modal & call screen) --- */
+.vc-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  animation: vc-fadeIn 0.2s ease-out;
+}
+
+/* --- Incoming Call Card --- */
+.vc-incoming-card {
+  background: var(--panel);
+  border-radius: 24px;
+  padding: 36px 32px;
+  text-align: center;
+  box-shadow: var(--sh);
+  width: min(360px, 90vw);
+  animation: vc-slideUp 0.3s ease-out;
+}
+
+.vc-incoming-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--acc-soft);
+  color: var(--acc);
+  display: grid;
+  place-items: center;
+  margin: 0 auto 16px;
+  animation: vc-ring 1.5s ease-in-out infinite;
+}
+
+.vc-incoming-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.vc-incoming-card h3 {
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.vc-incoming-card p {
+  color: var(--mute);
+  margin-bottom: 28px;
+  font-size: 15px;
+}
+
+.vc-incoming-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.vc-accept-btn,
+.vc-reject-btn {
+  padding: 12px 28px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 15px;
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.2s;
+  will-change: transform;
+}
+
+.vc-accept-btn {
+  background: #2fbf71;
+  color: #fff;
+}
+
+.vc-reject-btn {
+  background: var(--danger);
+  color: #fff;
+}
+
+.vc-accept-btn:hover,
+.vc-reject-btn:hover {
+  transform: translateY(-1px);
+}
+
+.vc-accept-btn:active,
+.vc-reject-btn:active {
+  transform: scale(0.97);
+}
+
+/* --- Call Screen (fullscreen overlay) --- */
+.vc-screen {
+  position: fixed;
+  inset: 0;
+  background: #0a0a0a;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  animation: vc-fadeIn 0.2s ease-out;
+}
+
+/* Remote video fills the screen */
+.vc-remote-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.vc-remote-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.vc-waiting {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
+  gap: 20px;
+}
+
+/* Pulse animation for the "Calling..." state */
+.vc-pulse-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid var(--acc);
+  animation: vc-pulse 1.5s ease-out infinite;
+}
+
+/* Local video (picture-in-picture) */
+.vc-local-container {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top, 16px));
+  right: 16px;
+  width: 120px;
+  height: 160px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.vc-local-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scaleX(-1); /* Mirror the local camera */
+}
+
+.vc-camera-off-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Peer name label */
+.vc-peer-name {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top, 20px));
+  left: 20px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 17px;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+
+/* Call status (shown below peer name during connecting) */
+.vc-call-status {
+  position: absolute;
+  top: calc(max(20px, env(safe-area-inset-top, 20px)) + 26px);
+  left: 20px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 13px;
+  z-index: 2;
+}
+
+/* Controls bar at the bottom */
+.vc-controls {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.vc-control-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.2s;
+  will-change: transform;
+}
+
+.vc-control-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.vc-control-btn:hover {
+  transform: scale(1.06);
+}
+
+.vc-control-btn:active {
+  transform: scale(0.94);
+}
+
+.vc-control-btn.vc-active {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.vc-end-btn {
+  background: var(--danger) !important;
+}
+
+.vc-end-btn:hover {
+  background: #c03030 !important;
+}
+
+/* --- Animations --- */
+@keyframes vc-fadeIn {
+  from { opacity: 0; }
+}
+
+@keyframes vc-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+}
+
+@keyframes vc-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes vc-ring {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(14deg); }
+  20% { transform: rotate(-14deg); }
+  30% { transform: rotate(14deg); }
+  40% { transform: rotate(-14deg); }
+  50% { transform: rotate(0deg); }
+}
+
+/* --- Mobile responsive --- */
+@media (max-width: 767px) {
+  .vc-local-container {
+    width: 100px;
+    height: 130px;
+    top: max(12px, env(safe-area-inset-top, 12px));
+    right: 12px;
+    border-radius: 12px;
+  }
+
+  .vc-peer-name {
+    top: max(14px, env(safe-area-inset-top, 14px));
+    left: 14px;
+    font-size: 15px;
+  }
+
+  .vc-call-status {
+    top: calc(max(14px, env(safe-area-inset-top, 14px)) + 22px);
+    left: 14px;
+  }
+
+  .vc-control-btn {
+    width: 52px;
+    height: 52px;
+  }
+
+  .vc-control-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .vc-incoming-card {
+    padding: 28px 20px;
+  }
+}
+
+/* --- Reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+  .vc-overlay,
+  .vc-incoming-card,
+  .vc-screen,
+  .vc-pulse-ring,
+  .vc-incoming-icon {
+    animation: none !important;
+  }
+}

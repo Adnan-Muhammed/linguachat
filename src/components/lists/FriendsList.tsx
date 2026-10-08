@@ -4,6 +4,7 @@ import { Icons } from '../Icons';
 import Avatar from '../ui/Avatar';
 import EmptyState from '../ui/EmptyState';
 import ListShell from '../layout/ListShell';
+import VideoCallButton from '@/features/video-call/VideoCallButton';
 
 export default function FriendsList() {
   const { db, ui, openChat, go } = useApp();
@@ -29,6 +30,7 @@ export default function FriendsList() {
                 </div>
               </div> 
               <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
+                <VideoCallButton friendId={u.id} />
                 <button
                   className="btn ghost sm"
                   style={{ margin: 0 }}

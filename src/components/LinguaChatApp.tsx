@@ -6,6 +6,10 @@ import RegisterScreen from './screens/RegisterScreen';
 import AppShell from './layout/AppShell';
 import Toasts from './ui/Toasts';
 import Spinner from './ui/Spinner';
+import { VideoCallProvider } from '@/features/video-call/VideoCallProvider';
+import IncomingCallModal from '@/features/video-call/IncomingCallModal';
+import VideoCallScreen from '@/features/video-call/VideoCallScreen';
+import '@/features/video-call/video-call.css';
 
 function Screens() {
   const { screen, loading } = useApp();
@@ -85,8 +89,12 @@ export default function LinguaChatApp() {
 
   return (
     <AppProvider>
-      <Screens />
-      <Toasts />
+      <VideoCallProvider>
+        <Screens />
+        <Toasts />
+        <IncomingCallModal />
+        <VideoCallScreen />
+      </VideoCallProvider>
     </AppProvider>
   );
 }
