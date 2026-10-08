@@ -21,6 +21,7 @@ export function useVideoCall() {
   const personalChannelRef = useRef<RealtimeChannel | null>(null);
   const targetChannelRef = useRef<RealtimeChannel | null>(null);
   const ringTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
 
   const statusRef = useRef(status);
   useEffect(() => { statusRef.current = status; }, [status]);
@@ -44,6 +45,7 @@ export function useVideoCall() {
       clearTimeout(ringTimeoutRef.current);
       ringTimeoutRef.current = null;
     }
+    iceCandidateQueue.current = [];
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
@@ -73,6 +75,19 @@ export function useVideoCall() {
     }
   }, [supabase]);
 
+  const processIceQueue = useCallback(async () => {
+    const pc = pcRef.current;
+    if (!pc) return;
+    for (const candidate of iceCandidateQueue.current) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (e) {
+        console.error('Error adding queued ice candidate', e);
+      }
+    }
+    iceCandidateQueue.current = [];
+  }, []);
+
   const initLocalStream = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -99,9 +114,16 @@ export function useVideoCall() {
     };
 
     pc.ontrack = (event) => {
-      if (event.streams && event.streams[0]) {
-        setRemoteStream(event.streams[0]);
-      }
+      setRemoteStream((prev) => {
+        if (event.streams && event.streams[0]) {
+          return new MediaStream(event.streams[0].getTracks());
+        }
+        const tracks = prev ? prev.getTracks() : [];
+        if (!tracks.find(t => t.id === event.track.id)) {
+          tracks.push(event.track);
+        }
+        return new MediaStream(tracks);
+      });
     };
 
     pc.oniceconnectionstatechange = () => {
@@ -247,6 +269,7 @@ export function useVideoCall() {
         const newPc = createPeerConnection(from);
         if (sdp) {
             await newPc.setRemoteDescription(new RTCSessionDescription(sdp));
+            processIceQueue();
         }
         
         setStatus('ringing');
@@ -266,16 +289,22 @@ export function useVideoCall() {
             ringTimeoutRef.current = null;
           }
           await pcRef.current.setRemoteDescription(new RTCSessionDescription(sdp));
+          processIceQueue();
           setStatus('connected');
         }
         break;
 
       case 'ice-candidate':
-        if ((currentStatus === 'calling' || currentStatus === 'connected' || currentStatus === 'ringing') && currentInfo?.peerId === from && pcRef.current && candidate) {
-          try {
-            await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-          } catch (e) {
-            console.error('Error adding ice candidate', e);
+        if (candidate) {
+          const pc = pcRef.current;
+          if (pc && pc.remoteDescription) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (e) {
+              console.error('Error adding ice candidate', e);
+            }
+          } else {
+            iceCandidateQueue.current.push(candidate);
           }
         }
         break;
@@ -294,7 +323,7 @@ export function useVideoCall() {
         }
         break;
     }
-  }, [me, sendSignal, cleanupCall, toast, createPeerConnection]);
+  }, [me, sendSignal, cleanupCall, toast, createPeerConnection, processIceQueue]);
 
   useEffect(() => {
     if (!me?.id) return;
