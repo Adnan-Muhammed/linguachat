@@ -22,14 +22,25 @@ export default function VideoCallScreen() {
       localVideoRef.current.srcObject = localStream;
       localVideoRef.current.play().catch(e => console.error('Local video play error:', e));
     }
-  }, [localStream]);
+  }, [localStream, status]);
 
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch(e => console.error('Remote video play error:', e));
+      const playVideo = () => {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.play().catch(e => console.error('Remote video play error:', e));
+        }
+      };
+
+      playVideo();
+
+      // Safari/iOS sometimes requires a forced play when a track un-mutes (receives data)
+      remoteStream.getTracks().forEach(track => {
+        track.onunmute = playVideo;
+      });
     }
-  }, [remoteStream]);
+  }, [remoteStream, status]);
 
   if (status !== 'calling' && status !== 'connected') return null;
 

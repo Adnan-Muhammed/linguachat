@@ -22,8 +22,8 @@ export function useVideoCall() {
   const targetChannelRef = useRef<RealtimeChannel | null>(null);
   const ringTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
-  
-  const signalQueueRef = useRef<{targetId: string, payload: SignalPayload}[]>([]);
+
+  const signalQueueRef = useRef<{ targetId: string, payload: SignalPayload }[]>([]);
   const isJoinedRef = useRef(false);
   const isJoiningRef = useRef(false);
 
@@ -71,7 +71,7 @@ export function useVideoCall() {
 
   const sendSignal = useCallback((targetId: string, payload: SignalPayload) => {
     const channelName = `${CHANNEL_PREFIX}${targetId}`;
-    
+
     // If the target changed, clean up old channel
     if (targetChannelRef.current && targetChannelRef.current.topic !== `realtime:${channelName}`) {
       supabase.removeChannel(targetChannelRef.current);
@@ -91,15 +91,15 @@ export function useVideoCall() {
       isJoiningRef.current = true;
       const ch = supabase.channel(channelName);
       targetChannelRef.current = ch;
-      
+
       ch.subscribe((state) => {
         if (state === 'SUBSCRIBED') {
           isJoinedRef.current = true;
           isJoiningRef.current = false;
-          
+
           const toSend = signalQueueRef.current;
           signalQueueRef.current = [];
-          
+
           toSend.forEach(item => {
             ch.send({ type: 'broadcast', event: 'signal', payload: item.payload });
           });
@@ -135,7 +135,7 @@ export function useVideoCall() {
 
   const createPeerConnection = useCallback((peerId: string) => {
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-    
+
     pc.onicecandidate = (event) => {
       if (event.candidate && me) {
         sendSignal(peerId, {
@@ -148,17 +148,18 @@ export function useVideoCall() {
 
     pc.ontrack = (event) => {
       if (event.streams && event.streams[0]) {
-        setRemoteStream(prev => {
-          if (prev === event.streams[0]) return prev;
-          return event.streams[0];
-        });
+        const stream = event.streams[0];
+        setRemoteStream(new MediaStream(stream.getTracks()));
+
+        // Listen for future tracks added to this stream natively by the browser
+        stream.onaddtrack = () => {
+          setRemoteStream(new MediaStream(stream.getTracks()));
+        };
       } else {
         setRemoteStream((prev) => {
-          if (prev) {
-             prev.addTrack(event.track);
-             return prev;
-          }
-          return new MediaStream([event.track]);
+          const newStream = new MediaStream(prev ? prev.getTracks() : []);
+          newStream.addTrack(event.track);
+          return newStream;
         });
       }
     };
@@ -189,7 +190,7 @@ export function useVideoCall() {
     try {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      
+
       sendSignal(peerId, {
         type: 'call-offer',
         from: me.id,
@@ -250,7 +251,7 @@ export function useVideoCall() {
   const rejectCall = useCallback(() => {
     const info = callInfoRef.current;
     if (!me || !info) return;
-    
+
     sendSignal(info.peerId, { type: 'call-rejected', from: me.id });
     cleanupCall();
   }, [me, sendSignal, cleanupCall]);
@@ -258,7 +259,7 @@ export function useVideoCall() {
   const endCall = useCallback(() => {
     const info = callInfoRef.current;
     if (!me || !info) return;
-    
+
     sendSignal(info.peerId, { type: 'call-ended', from: me.id });
     cleanupCall();
   }, [me, sendSignal, cleanupCall]);
@@ -302,16 +303,16 @@ export function useVideoCall() {
           sendSignal(from, { type: 'call-rejected', from: me.id });
           return;
         }
-        
+
         const newPc = createPeerConnection(from);
         if (sdp) {
-            await newPc.setRemoteDescription(new RTCSessionDescription(sdp));
-            processIceQueue();
+          await newPc.setRemoteDescription(new RTCSessionDescription(sdp));
+          processIceQueue();
         }
-        
+
         setStatus('ringing');
         setCallInfo({ peerId: from, peerName: fromName || 'Unknown', isCaller: false });
-        
+
         ringTimeoutRef.current = setTimeout(() => {
           if (statusRef.current === 'ringing') {
             cleanupCall();
@@ -362,14 +363,17 @@ export function useVideoCall() {
     }
   }, [me, sendSignal, cleanupCall, toast, createPeerConnection, processIceQueue]);
 
+  const handleSignalRef = useRef(handleSignal);
+  useEffect(() => { handleSignalRef.current = handleSignal; }, [handleSignal]);
+
   useEffect(() => {
     if (!me?.id) return;
-    
+
     const channelName = `${CHANNEL_PREFIX}${me.id}`;
     const channel = supabase.channel(channelName);
-    
+
     channel.on('broadcast', { event: 'signal' }, ({ payload }) => {
-      handleSignal(payload as SignalPayload);
+      handleSignalRef.current(payload as SignalPayload);
     }).subscribe();
 
     personalChannelRef.current = channel;
@@ -377,7 +381,10 @@ export function useVideoCall() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [me?.id, supabase, handleSignal]);
+  }, [me?.id, supabase]);
+
+  const cleanupCallRef = useRef(cleanupCall);
+  useEffect(() => { cleanupCallRef.current = cleanupCall; }, [cleanupCall]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -388,9 +395,15 @@ export function useVideoCall() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      cleanupCall();
     };
-  }, [me, sendSignal, cleanupCall]);
+  }, [me, sendSignal]);
+
+  useEffect(() => {
+    return () => {
+      // Only clean up when the hook actually unmounts (component destroys)
+      cleanupCallRef.current();
+    };
+  }, []);
 
   return {
     status,
