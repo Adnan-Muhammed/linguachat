@@ -1,4 +1,4 @@
-export type Tab = 'friends' | 'users' | 'requests' | 'profile';
+export type Tab = 'friends' | 'users' | 'requests' | 'tutor' | 'profile';
 export type Screen = 'welcome' | 'register' | 'app';
 export type Theme = 'light' | 'dark';
 

@@ -103,6 +103,8 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 #app{position:fixed;inset:0;display:grid;grid-template-columns:76px 360px 1fr;background:var(--panel)}
 #app[data-tab=profile]{grid-template-columns:76px 1fr}
 #app[data-tab=profile] .list{display:none}
+#app[data-tab=tutor]{grid-template-columns:76px 1fr}
+#app[data-tab=tutor] .list{display:none}
 .rail{background:var(--nav);color:#fff;display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:6px}
 .rail .logo{width:42px;height:42px;border-radius:14px;margin:0 0 14px;background:#fff;color:var(--nav)}.rail .logo svg{width:24px;height:24px}
 .nav{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;color:rgba(255,255,255,.78);position:relative;transition:background .2s,color .2s,transform .15s;will-change:transform}
@@ -154,6 +156,27 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 .send{width:44px;height:44px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;transition:transform .15s;will-change:transform}.send:hover{transform:scale(1.06)}.send:active{transform:scale(.94)}
 .main .empty{height:100%}
 
+/* ===== AI Tutor ===== */
+.tutor-screen{height:100%;min-height:0;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
+.tutor-header{height:82px;flex:none;position:relative;display:flex;align-items:center;justify-content:center;padding:12px 72px;background:var(--hdr);color:var(--hdr-ink)}
+.tutor-header h1{font-size:26px;font-weight:600;letter-spacing:-.3px}
+.tutor-theme{position:absolute;right:20px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.16);color:var(--hdr-ink)}
+.tutor-theme:hover{background:rgba(255,255,255,.25);color:var(--hdr-ink)}
+.tutor-content{width:min(820px,100%);margin:0 auto;flex:1;min-height:0;overflow:auto;padding:22px 24px 30px;-webkit-overflow-scrolling:touch}
+.tutor-intro{display:flex;align-items:center;gap:20px;padding:22px 24px;margin-bottom:18px;border-radius:24px;background:var(--acc-soft)}
+.tutor-intro-icon{width:68px;height:68px;flex:none;display:grid;place-items:center;border-radius:22px;background:var(--acc);color:var(--acc-ink)}
+.tutor-intro-icon svg{width:32px;height:32px}
+.tutor-intro h2{font-size:20px;font-weight:600;letter-spacing:-.2px}
+.tutor-intro p,.tutor-feature-copy p{color:var(--mute);font-size:16px;margin-top:4px}
+.tutor-features{display:grid;gap:3px}
+.tutor-feature{min-height:94px;display:flex;align-items:center;gap:18px;padding:12px;border-radius:18px}
+.tutor-feature-icon{width:64px;height:64px;flex:none;display:grid;place-items:center;border-radius:20px;background:var(--acc-soft);color:var(--acc)}
+.tutor-feature-icon svg{width:28px;height:28px}
+.tutor-feature-copy{min-width:0;flex:1}
+.tutor-feature-copy h3{font-size:18px;font-weight:600;line-height:1.3}
+.tutor-feature-copy p{line-height:1.4;overflow-wrap:anywhere}
+.tutor-soon{flex:none;padding:5px 12px;border-radius:999px;background:var(--acc-soft);color:var(--mute);font-size:14px;line-height:1.3}
+
 /* ===== Profile ===== */
 .pwrap{overflow:auto;flex:1;padding:28px 16px 100px;display:flex;justify-content:center;align-items:center;background:var(--bg);-webkit-overflow-scrolling:touch}
 .pcard{background:var(--panel);width:min(560px,100%);border-radius:24px;box-shadow:var(--sh);padding:28px;height:max-content}
@@ -174,13 +197,14 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   .rail{display:none}
   .list{position:absolute;inset:0;border:0;background:var(--hdr)}
   #app[data-tab=profile] .list{display:none}
+  #app[data-tab=tutor] .list{display:none}
   .lhead{justify-content:center;color:var(--hdr-ink);padding:max(22px,env(safe-area-inset-top)) 18px 20px}
   .lhead h2{font-size:20px;font-weight:600}
   .sheet{border-radius:26px 26px 0 0;overflow:hidden}
   .search{margin:16px 16px 6px}
   .lbody{padding-top:8px;padding-bottom:100px}
   .main{position:absolute;inset:0;transform:translateX(100%);transition:transform .28s cubic-bezier(.3,.8,.3,1);z-index:5;background:var(--hdr);will-change:transform}
-  #app[data-tab=profile] .main{transform:none;background:var(--bg)}
+  #app[data-tab=profile] .main,#app[data-tab=tutor] .main{transform:none;background:var(--bg)}
   #app[data-chat=open] .main{transform:none}
   #app[data-chat=open] .bottomnav{transform:translateY(160%)}
   .chead{padding:max(12px,env(safe-area-inset-top)) 14px 16px}
@@ -188,12 +212,25 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   .msg{max-width:84%}
   .msgs{padding:16px 12px;border-radius:26px 26px 0 0}
   .bottomnav{display:flex;position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));height:58px;padding:0 4px;border-radius:18px;background:var(--nav);box-shadow:0 6px 18px rgba(60,20,120,.3);z-index:6;transition:transform .28s cubic-bezier(.3,.8,.3,1);will-change:transform}
-  .bottomnav .nav{flex:1;width:auto;height:calc(100% - 12px);margin:6px 3px;border-radius:14px;background:none;display:flex;flex-direction:column;gap:2px;font-size:11px;justify-content:center;align-items:center}
+  .bottomnav .nav{flex:1;min-width:0;width:auto;height:calc(100% - 12px);margin:6px 1px;border-radius:14px;background:none;display:flex;flex-direction:column;gap:2px;font-size:10px;justify-content:center;align-items:center}
+  .bottomnav .nav svg{width:20px;height:20px}
+  .bottomnav .nav .lbl{white-space:nowrap;line-height:1.1}
   .bottomnav .nav.active{background:#fff;color:var(--nav)}
   .bottomnav .badge{right:calc(50% - 22px);top:2px}
   .fab{display:grid;place-items:center;position:absolute;right:18px;bottom:88px;width:56px;height:56px;border-radius:50%;background:var(--acc);color:var(--acc-ink);box-shadow:var(--sh);z-index:4;transition:transform .15s;will-change:transform}
   .fab:active{transform:scale(.92)}
   #app[data-tab=users] .fab,#app[data-tab=requests] .fab{display:none}
+  .tutor-header{height:auto;min-height:96px;padding:max(16px,env(safe-area-inset-top)) 72px 16px}
+  .tutor-content{padding:18px 14px calc(92px + env(safe-area-inset-bottom))}
+  .tutor-intro{gap:14px;padding:18px 16px;border-radius:22px;margin-bottom:12px}
+  .tutor-intro-icon{width:58px;height:58px;border-radius:18px}
+  .tutor-intro h2{font-size:18px}
+  .tutor-intro p,.tutor-feature-copy p{font-size:14px}
+  .tutor-feature{min-height:82px;gap:12px;padding:8px 4px}
+  .tutor-feature-icon{width:54px;height:54px;border-radius:17px}
+  .tutor-feature-icon svg{width:24px;height:24px}
+  .tutor-feature-copy h3{font-size:16px}
+  .tutor-soon{padding:4px 9px;font-size:12px}
   .card{padding:28px 20px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

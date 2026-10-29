@@ -12,7 +12,7 @@ export default function AppShell() {
       <Rail />
       <section className="list" id="list"><ListPanel /></section>
       <section className="main" id="main"><MainPanel /></section>
-      <button className="fab" onClick={() => go('users')} aria-label="Find people">{Icons.plus}</button>
+      {ui.tab === 'friends' && <button className="fab" onClick={() => go('users')} aria-label="Find people">{Icons.plus}</button>}
       <BottomNav />
     </div>
   );

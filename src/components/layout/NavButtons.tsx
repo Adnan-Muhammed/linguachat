@@ -7,6 +7,7 @@ const ITEMS: [Tab, string, ReactNode][] = [
   ['friends', 'Friends', Icons.friends],
   ['users', 'Users', Icons.users],
   ['requests', 'Requests', Icons.bell],
+  ['tutor', 'Tutor', Icons.tutor],
   ['profile', 'Profile', Icons.profile],
 ];
 

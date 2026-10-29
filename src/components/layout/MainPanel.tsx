@@ -3,10 +3,12 @@ import { Icons } from '../Icons';
 import EmptyState from '../ui/EmptyState';
 import ChatPanel from '../chat/ChatPanel';
 import ProfilePanel from '../profile/ProfilePanel';
+import TutorDashboard from '../screens/TutorDashboard';
 
 export default function MainPanel() {
   const { ui } = useApp();
   if (ui.tab === 'profile') return <ProfilePanel />;
+  if (ui.tab === 'tutor') return <TutorDashboard />;
   if (ui.chat) return <ChatPanel key={ui.chat} friendId={ui.chat} />;
   return (
     <EmptyState
