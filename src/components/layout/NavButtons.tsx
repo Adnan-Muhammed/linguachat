@@ -7,14 +7,14 @@ const ITEMS: [Tab, string, ReactNode][] = [
   ['friends', 'Friends', Icons.friends],
   ['users', 'Users', Icons.users],
   ['requests', 'Requests', Icons.bell],
-  ['tutor', 'Tutor', Icons.tutor],
+  ['tutor', 'AI Tutor', Icons.tutor],
   ['profile', 'Profile', Icons.profile],
 ];
 
 export default function NavButtons() {
   const { ui, db, go } = useApp();
   const n = db.incoming.length;
-  
+
   const totalUnread = Object.values(db.unreadCounts || {}).reduce((a, b) => a + b, 0);
 
   return (
