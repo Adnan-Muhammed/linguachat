@@ -98,16 +98,19 @@ function initialSessions(module: TutorModule): LearningSession[] {
     : [{ id: 'until', title: 'Until', completed: 5 }, { id: 'as-soon-as', title: 'As soon as', completed: 0 }, { id: 'neither-nor', title: 'Neither...nor', completed: 0 }];
 }
 
-export default function TutorExperience({ module, onBack }: { module: TutorModule; onBack: () => void }) {
+export default function TutorExperience({ module, onBack, sessionId, onBackSessions, onOpenSession, onSwitchSession }: { module: TutorModule; onBack: () => void; sessionId: string | null; onBackSessions: () => void; onOpenSession: (id: string) => void; onSwitchSession: (id: string) => void }) {
   const [sessions, setSessions] = useState(() => initialSessions(module));
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const [batch, setBatch] = useState(0);
   const [notice, setNotice] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showLessonForm, setShowLessonForm] = useState(false);
+  const [lessonDraft, setLessonDraft] = useState('');
   const grammar = module.number === 2;
   const session = sessions.find((item) => item.id === sessionId);
-  const content = grammar && session ? grammarContent[session.id === 'as-soon-as' ? 'as soon as' : session.id === 'neither-nor' ? 'neither...nor' : 'until'] : null;
+  const content = grammar && session ? grammarContent[session.id === 'as-soon-as' ? 'as soon as' : session.id === 'neither-nor' ? 'neither...nor' : session.id === 'until' ? 'until' : ''] ?? null : null;
   const message: TutorMessage | null = session ? { id: `${session.id}-${batch}`, role: 'tutor', batch, examples: grammar ? content?.batches[Math.min(batch, (content?.batches.length ?? 1) - 1)] ?? [] : (sentenceSessions[session.id] ?? sentenceBatches)[Math.min(batch, 1)] } : null;
-  const examples = message?.examples ?? [];
+  const isCustomSession = Boolean(session && session.id.startsWith('custom-'));
+  const examples = isCustomSession ? [] : message?.examples ?? [];
   const sessionSentence = session && module.number === 1 ? session.title : '';
   const nextBatch = () => {
     if (batch >= 1) { setNotice('You’ve completed the available demo lessons for this session.'); return; }
@@ -115,22 +118,44 @@ export default function TutorExperience({ module, onBack }: { module: TutorModul
     setSessions((list) => list.map((item) => item.id === sessionId ? { ...item, completed: 10 } : item));
     setNotice('');
   };
-  const open = (id: string) => { setSessionId(id); setBatch(0); setNotice(''); };
+  const open = (id: string) => {
+    setBatch(0);
+    setNotice('');
+    setMenuOpen(false);
+    if (sessionId) onSwitchSession(id);
+    else onOpenSession(id);
+  };
+  const createSession = () => {
+    const title = lessonDraft.trim();
+    if (!title) return;
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'sentence';
+    const id = `custom-${grammar ? 'expression' : 'sentence'}-${slug}-${Date.now().toString(36)}`;
+    setSessions((list) => [...list, { id, title, completed: 0 }]);
+    setLessonDraft('');
+    setShowLessonForm(false);
+    setMenuOpen(false);
+    setBatch(0);
+    onOpenSession(id);
+  };
+  const startNewChat = () => {
+    setShowLessonForm(true);
+    setMenuOpen(false);
+    if (sessionId) onBackSessions();
+  };
 
-  return <main className="tutor-screen tutor-redesign">
-    <header className="tutor-header tutor-header-detail"><button className="tutor-inline-back" onClick={session ? () => { setSessionId(null); setNotice(''); } : onBack}>← <span>{session ? 'Sessions' : 'All modules'}</span></button><div className="tutor-header-main"><span className="tutor-hero-kicker">Module {String(module.number).padStart(2, '0')}</span><h1>{module.title}</h1></div></header>
+  return <main className="tutor-screen tutor-redesign tutor-inner-open">
+    <header className="tutor-header tutor-header-detail">{session ? <button className="tutor-inline-back" onClick={onBackSessions} aria-label="Back to module">←</button> : <button className="tutor-inline-back" onClick={onBack}>← <span>AI Tutor</span></button>}<button className="tutor-menu-button" aria-label="Open session history" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)}>☰</button><div className="tutor-header-main"><span className="tutor-hero-kicker">Module {String(module.number).padStart(2, '0')}</span><h1>{module.title}</h1></div>{session && <button className="tutor-new-chat" onClick={startNewChat}>＋<span>New chat</span></button>}</header>
+    {menuOpen && <><button className="tutor-drawer-backdrop" aria-label="Close session menu" onClick={() => setMenuOpen(false)} /><aside className="tutor-session-drawer"><div className="tutor-drawer-title"><strong>{module.title}</strong><button onClick={() => setMenuOpen(false)} aria-label="Close menu">×</button></div><button className="tutor-drawer-new" onClick={startNewChat}>＋ New chat</button><div className="tutor-drawer-list">{sessions.map((item) => <button key={item.id} className={`tutor-drawer-item ${item.id === sessionId ? 'selected' : ''}`} onClick={() => open(item.id)}><span>{item.title}</span><small>{item.completed} patterns completed</small></button>)}</div>{grammar && <button className="tutor-drawer-back" onClick={() => { setMenuOpen(false); onBackSessions(); }}>← Back to sessions</button>}<button className="tutor-drawer-back" onClick={onBack}>← Back to AI Tutor</button></aside></>}
     <div className="tutor-content">
       {!session ? <>
-        <section className="tutor-module-intro"><p>{module.description}</p><button className="tutor-primary-btn" onClick={() => { const id = `session-${Date.now()}`; const title = grammar ? 'New expression' : 'New sentence'; setSessions((list) => [...list, { id, title, completed: 0 }]); open(id); }}>＋ New Learning Session</button></section>
-        <h2 className="tutor-list-heading">Your Learning Sessions <span>{sessions.length}</span></h2>
-        <div className="tutor-session-list">{sessions.map((item) => <article className="tutor-session-card" key={item.id}><div><span className="tutor-session-kicker">{item.completed ? 'In progress' : 'Ready to start'}</span><h3>{item.title}</h3><p>{item.completed} patterns completed · {item.completed ? `${item.completed} of 10` : '0 of 10'} examples</p><div className="tutor-progress"><span style={{ width: `${item.completed * 10}%` }} /></div></div><button className="tutor-secondary-btn" onClick={() => open(item.id)}>{item.completed ? 'Continue' : 'Open'} →</button></article>)}</div>
+        <section className="tutor-module-intro sentence-mode"><p>{module.description}</p>{showLessonForm ? <form className="tutor-sentence-form" onSubmit={(event) => { event.preventDefault(); createSession(); }}><label htmlFor="new-learning-item">{grammar ? 'Enter a grammar pattern or expression' : 'Enter an English sentence'}</label><textarea id="new-learning-item" autoFocus maxLength={180} value={lessonDraft} onChange={(event) => setLessonDraft(event.target.value)} placeholder={grammar ? 'For example: Although' : 'For example: I went to London.'} required /><div className="tutor-form-actions"><button className="tutor-secondary-btn" type="button" onClick={() => { setShowLessonForm(false); setLessonDraft(''); }}>Cancel</button><button className="tutor-primary-btn" type="submit">Create chat →</button></div></form> : <button className="tutor-primary-btn" onClick={startNewChat}>＋ New Learning Session</button>}</section>
       </> : <>
         <div className="tutor-chat-top"><div><span className="tutor-session-kicker">Learning session</span><h2>{session.title}</h2></div><div className="tutor-progress-label">Batch {batch + 1} of 2</div></div>
         <div className="tutor-chat-message"><div className="tutor-message-label">Tutor · Demo lesson</div>
-          {grammar && content ? <><h3>Expression: {session.title.toUpperCase()}</h3><p><b>Meaning:</b> {content.meaning}</p><p><b>Grammar category:</b> {content.category}</p><p><b>Usage:</b> {content.usage}</p></> : <><h3>Base sentence: {sessionSentence}</h3><p>Let’s explore a few useful structures and see how each one changes the meaning.</p></>}
+          {grammar && content ? <><h3>Expression: {session.title.toUpperCase()}</h3><p><b>Meaning:</b> {content.meaning}</p><p><b>Grammar category:</b> {content.category}</p><p><b>Usage:</b> {content.usage}</p></> : grammar ? <><h3>Expression: {session.title}</h3><p>This demo chat has been created for your expression. Learning examples can be added to this session.</p></> : <><h3>Base sentence: {sessionSentence}</h3><p>{isCustomSession ? 'This demo chat has been created for your sentence. Learning examples can be added to this session.' : 'Let’s explore a few useful structures and see how each one changes the meaning.'}</p></>}
           <div className="tutor-example-list">{examples.map((example, index) => <article className="tutor-example" key={`${batch}-${example.english}`}><div className="tutor-example-number">{index + 1}</div><div><h4>{example.english}</h4><p><b>Malayalam</b><span>{example.malayalam}</span></p><p><b>Structure</b><span>{example.structure}</span></p></div></article>)}</div>
         </div>
-        <div className="tutor-chat-footer"><div className="tutor-progress-row"><span>{Math.min((batch + 1) * 5, 10)} of 10 patterns explored</span><div className="tutor-progress"><span style={{ width: `${(batch + 1) * 50}%` }} /></div></div><button className="tutor-primary-btn" onClick={nextBatch}>Continue Learning →</button>{notice && <p className="tutor-demo-notice">{notice}</p>}</div>
+        <div className="tutor-chat-footer">{!isCustomSession && <><div className="tutor-progress-row"><span>{Math.min((batch + 1) * 5, 10)} of 10 patterns explored</span><div className="tutor-progress"><span style={{ width: `${(batch + 1) * 50}%` }} /></div></div><button className="tutor-primary-btn" onClick={nextBatch}>Continue Learning →</button></>}{notice && <p className="tutor-demo-notice">{notice}</p>}</div>
       </>}
     </div>
   </main>;

@@ -1809,6 +1809,13 @@ svg {
 .tutor-redesign .tutor-header-detail { justify-content:flex-start }
 .tutor-inline-back { display:flex; align-items:center; gap:6px; border:0; color:var(--acc); background:transparent; font:inherit; font-size:13px; cursor:pointer }
 .tutor-module-intro { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px 18px; border:1px solid var(--line); border-radius:14px; background:var(--panel); color:var(--mute); font-size:14px }
+.tutor-module-intro.sentence-mode { width:min(100%,680px); min-height:210px; margin:clamp(50px,14vh,150px) auto 0; padding:30px; flex-direction:column; align-items:center; justify-content:center; gap:22px; text-align:center }
+.tutor-module-intro.sentence-mode>p { max-width:480px; color:var(--mute); font-size:16px; line-height:1.65 }
+.tutor-sentence-form { width:min(100%,480px); display:grid; gap:9px; text-align:left }
+.tutor-sentence-form label { color:var(--ink); font-size:13px; font-weight:650 }
+.tutor-sentence-form textarea { width:100%; min-height:100px; padding:12px; resize:vertical; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink); font:inherit; font-size:14px; line-height:1.5 }
+.tutor-sentence-form textarea:focus { outline:2px solid var(--acc); outline-offset:1px }
+.tutor-form-actions { display:flex; justify-content:flex-end; gap:8px }
 .tutor-primary-btn,.tutor-secondary-btn { flex:0 0 auto; border:0; border-radius:10px; padding:10px 14px; font:inherit; font-size:13px; font-weight:650; cursor:pointer }
 .tutor-primary-btn { background:var(--acc); color:var(--acc-ink) }
 .tutor-secondary-btn { border:1px solid var(--line); color:var(--ink); background:var(--panel2) }
@@ -1838,6 +1845,25 @@ svg {
 .tutor-progress-row { display:flex; align-items:center; gap:10px; flex:1; min-width:200px; color:var(--mute); font-size:12px }
 .tutor-progress-row .tutor-progress { width:auto; flex:1 }
 .tutor-demo-notice { flex-basis:100%; color:var(--mute); font-size:12px }
+#app:has(.tutor-inner-open) { grid-template-columns:minmax(0,1fr) }
+#app:has(.tutor-inner-open) .rail,#app:has(.tutor-inner-open) .list,#app:has(.tutor-inner-open) .bottomnav,#app:has(.tutor-inner-open) .fab { display:none!important }
+#app:has(.tutor-inner-open) .main { grid-column:1; width:100%; height:100%; }
+#app[data-tutor-route=open] { grid-template-columns:minmax(0,1fr) }
+#app[data-tutor-route=open] .rail,#app[data-tutor-route=open] .list,#app[data-tutor-route=open] .bottomnav,#app[data-tutor-route=open] .fab { display:none!important }
+#app[data-tutor-route=open] .main { grid-column:1; width:100%; height:100%; }
+.tutor-menu-button { display:grid; place-items:center; width:38px; height:38px; flex:0 0 38px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink); font-size:18px; cursor:pointer }
+.tutor-new-chat { display:flex; align-items:center; gap:6px; padding:9px 11px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink); font:inherit; font-size:12px; cursor:pointer }
+.tutor-drawer-backdrop { position:fixed; z-index:40; inset:0; border:0; background:#09051080; cursor:pointer }
+.tutor-session-drawer { position:fixed; z-index:41; inset:0 auto 0 0; display:flex; flex-direction:column; width:min(340px,86vw); padding:14px; background:var(--panel); color:var(--ink); box-shadow:var(--sh) }
+.tutor-drawer-title { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 4px 14px; border-bottom:1px solid var(--line); font-size:14px }
+.tutor-drawer-title button { border:0; background:transparent; color:var(--mute); font-size:24px; cursor:pointer }
+.tutor-drawer-new { margin:12px 0; padding:11px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink); text-align:left; font:inherit; font-size:13px; cursor:pointer }
+.tutor-drawer-list { display:grid; align-content:start; gap:5px; overflow:auto; flex:1 }
+.tutor-drawer-item { display:grid; gap:4px; padding:11px; border:0; border-radius:9px; background:transparent; color:var(--ink); text-align:left; font:inherit; cursor:pointer }
+.tutor-drawer-item:hover,.tutor-drawer-item.selected { background:var(--acc-soft) }
+.tutor-drawer-item span { font-size:13px; font-weight:600 }
+.tutor-drawer-item small { color:var(--mute); font-size:11px }
+.tutor-drawer-back { margin-top:8px; padding:10px; border:0; border-radius:9px; background:transparent; color:var(--acc); text-align:left; font:inherit; font-size:12px; cursor:pointer }
 @media(max-width:900px) { .tutor-redesign-grid { grid-template-columns:repeat(2,minmax(0,1fr)) } }
 @media(max-width:600px) {
   .tutor-redesign .tutor-header { min-height:60px; padding:10px 14px }
@@ -1848,12 +1874,17 @@ svg {
   .tutor-redesign-grid { grid-template-columns:1fr; gap:9px }
   .tutor-redesign-card { min-height:0; padding:13px }
   .tutor-module-intro { align-items:flex-start; flex-direction:column }
+  .tutor-module-intro.sentence-mode { min-height:190px; margin:clamp(32px,9vh,100px) auto 0; padding:22px 16px }
+  .tutor-module-intro.sentence-mode>p { font-size:14px }
   .tutor-session-card { align-items:flex-start; padding:14px; gap:8px }
   .tutor-session-card .tutor-progress { width:min(270px,45vw) }
   .tutor-secondary-btn { padding:9px 10px }
   .tutor-chat-message { padding:14px }
   .tutor-example p { grid-template-columns:68px minmax(0,1fr) }
   .tutor-progress-row { flex-basis:100% }
+  .tutor-redesign.tutor-inner-open { min-height:100dvh; padding-bottom:0 }
+  .tutor-inner-open .tutor-header { padding-top:max(10px,env(safe-area-inset-top)); }
+  .tutor-new-chat span { display:none }
 }
 
 .tutor-bottom-nav-action {
