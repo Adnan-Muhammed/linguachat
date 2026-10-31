@@ -15,5 +15,6 @@ export interface TutorModule {
   estimatedTime: string;
   keyTopics: string[];
   features: string[];
+  status: 'active' | 'soon';
 }
 
