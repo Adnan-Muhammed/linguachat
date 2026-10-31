@@ -51,45 +51,51 @@ const sentenceSessions: Record<string, Example[][]> = {
   ]],
 };
 const grammarContent: Record<string, { meaning: string; category: string; usage: string; batches: Example[][] }> = {
-  until: { meaning: 'വരെ / അതുവരെ', category: 'Conjunction / preposition', usage: 'Shows that an action or situation continues up to a particular time or point.', batches: [[
-    { english: 'I will wait until you come.', malayalam: 'നീ വരുന്നതുവരെ ഞാൻ കാത്തിരിക്കും.', structure: 'Subject + will + V1 + until + subject + present simple.' },
-    { english: "Don't leave until I return.", malayalam: 'ഞാൻ തിരിച്ചുവരുന്നതുവരെ പോകല്ലേ.', structure: 'Negative imperative + until + subject + present simple.' },
-    { english: 'We worked until midnight.', malayalam: 'ഞങ്ങൾ അർദ്ധരാത്രിവരെ ജോലി ചെയ്തു.', structure: 'Subject + V2 + until + time expression.' },
-    { english: 'The shop is open until six.', malayalam: 'കട ആറുമണിവരെ തുറന്നിരിക്കും.', structure: 'Subject + be + adjective + until + time.' },
-    { english: 'She stayed until the rain stopped.', malayalam: 'മഴ നിൽക്കുന്നതുവരെ അവൾ അവിടെ നിന്നു.', structure: 'Subject + V2 + until + subject + past simple.' },
-  ], [
-    { english: 'Keep stirring until the sauce thickens.', malayalam: 'സോസ് കട്ടിയാകുന്നതുവരെ ഇളക്കിക്കൊണ്ടിരിക്കുക.', structure: 'Imperative + until + subject + present simple.' },
-    { english: 'He had never travelled until last year.', malayalam: 'കഴിഞ്ഞ വർഷം വരെ അവൻ യാത്ര ചെയ്തിരുന്നില്ല.', structure: 'Subject + had never + V3 + until + time.' },
-    { english: 'You cannot enter until the doors open.', malayalam: 'വാതിലുകൾ തുറക്കുന്നതുവരെ നിനക്ക് അകത്തു കടക്കാനാവില്ല.', structure: 'Subject + cannot + V1 + until + clause.' },
-    { english: 'I did not know the answer until you explained it.', malayalam: 'നീ വിശദീകരിക്കുന്നതുവരെ എനിക്ക് ഉത്തരം അറിയില്ലായിരുന്നു.', structure: 'Subject + did not + V1 + until + clause.' },
-    { english: 'Wait here until the bus arrives.', malayalam: 'ബസ് എത്തുന്നതുവരെ ഇവിടെ കാത്തിരിക്കുക.', structure: 'Imperative + until + subject + present simple.' },
-  ]] },
-  'as soon as': { meaning: 'ഉടനെ / ചെയ്ത ഉടൻ', category: 'Subordinating conjunction', usage: 'Connects two events when the second happens immediately after the first.', batches: [[
-    { english: 'Call me as soon as you arrive.', malayalam: 'നീ എത്തിയ ഉടൻ എന്നെ വിളിക്കൂ.', structure: 'Imperative + as soon as + subject + present simple.' },
-    { english: 'As soon as the bell rang, the students left.', malayalam: 'മണി മുഴങ്ങിയ ഉടൻ വിദ്യാർത്ഥികൾ പോയി.', structure: 'As soon as + subject + V2, subject + V2.' },
-    { english: "I'll let you know as soon as I hear anything.", malayalam: 'എന്തെങ്കിലും അറിഞ്ഞ ഉടൻ ഞാൻ നിന്നെ അറിയിക്കും.', structure: 'Subject + will + V1 + as soon as + present simple.' },
-    { english: 'She smiled as soon as she saw her friend.', malayalam: 'സുഹൃത്തിനെ കണ്ട ഉടൻ അവൾ പുഞ്ചിരിച്ചു.', structure: 'Subject + V2 + as soon as + subject + V2.' },
-    { english: 'As soon as it stops raining, we can go out.', malayalam: 'മഴ നിന്ന ഉടൻ നമുക്ക് പുറത്തുപോകാം.', structure: 'As soon as + present simple, subject + can + V1.' },
-  ], [
-    { english: 'Please send the file as soon as you finish.', malayalam: 'പൂർത്തിയാക്കിയ ഉടൻ ഫയൽ അയയ്ക്കൂ.', structure: 'Imperative + as soon as + present simple.' },
-    { english: 'The baby fell asleep as soon as the car started.', malayalam: 'കാർ തുടങ്ങിയ ഉടൻ കുഞ്ഞ് ഉറങ്ങി.', structure: 'Subject + V2 + as soon as + subject + V2.' },
-    { english: 'As soon as we get home, we will eat.', malayalam: 'വീട്ടിലെത്തിയ ഉടൻ ഞങ്ങൾ ഭക്ഷണം കഴിക്കും.', structure: 'As soon as + present simple, subject + will + V1.' },
-    { english: 'He apologized as soon as he realized his mistake.', malayalam: 'തന്റെ തെറ്റ് മനസ്സിലാക്കിയ ഉടൻ അവൻ ക്ഷമ ചോദിച്ചു.', structure: 'Subject + V2 + as soon as + subject + V2.' },
-    { english: 'I will start as soon as everyone is ready.', malayalam: 'എല്ലാവരും തയ്യാറായ ഉടൻ ഞാൻ തുടങ്ങും.', structure: 'Subject + will + V1 + as soon as + present simple.' },
-  ]] },
-  'neither...nor': { meaning: 'ഇതുമില്ല അതുമില്ല / രണ്ടുമല്ല', category: 'Correlative conjunction', usage: 'Joins two negative alternatives. The verb agrees with the nearer subject.', batches: [[
-    { english: 'Neither Ravi nor Anu was late.', malayalam: 'രവിയോ അനുവോ വൈകിയില്ല.', structure: 'Neither + singular noun + nor + singular noun + singular verb.' },
-    { english: 'She likes neither tea nor coffee.', malayalam: 'അവൾക്ക് ചായയും കാപ്പിയും ഇഷ്ടമല്ല.', structure: 'Subject + verb + neither + noun + nor + noun.' },
-    { english: 'Neither the manager nor the employees were available.', malayalam: 'മാനേജരോ ജീവനക്കാരോ ലഭ്യമായിരുന്നില്ല.', structure: 'Neither + singular subject + nor + plural subject + plural verb.' },
-    { english: 'He can neither swim nor drive.', malayalam: 'അവന് നീന്താനോ വാഹനമോടിക്കാനോ കഴിയില്ല.', structure: 'Subject + modal + neither + V1 + nor + V1.' },
-    { english: 'Neither of the answers is correct.', malayalam: 'ഉത്തരങ്ങളിൽ ഒന്നുപോലും ശരിയല്ല.', structure: 'Neither of + plural noun + singular verb (formal usage).' },
-  ], [
-    { english: 'Neither my brother nor I am interested in cricket.', malayalam: 'എന്റെ സഹോദരനും എനിക്കും ക്രിക്കറ്റിൽ താൽപര്യമില്ല.', structure: 'Neither + noun + nor + I + am.' },
-    { english: 'They neither called nor sent a message.', malayalam: 'അവർ വിളിക്കുകയോ സന്ദേശം അയയ്ക്കുകയോ ചെയ്തില്ല.', structure: 'Subject + neither + V2 + nor + V2.' },
-    { english: 'Neither the keys nor the wallet is on the table.', malayalam: 'താക്കോലോ പേഴ്സോ മേശപ്പുറത്തില്ല.', structure: 'Neither + plural noun + nor + singular noun + singular verb.' },
-    { english: 'She is neither angry nor upset.', malayalam: 'അവൾക്ക് ദേഷ്യമോ വിഷമമോ ഇല്ല.', structure: 'Subject + be + neither + adjective + nor + adjective.' },
-    { english: 'Neither did he complain nor did he leave.', malayalam: 'അവൻ പരാതിപ്പെടുകയോ അവിടെനിന്ന് പോകുകയോ ചെയ്തില്ല.', structure: 'Neither + auxiliary + subject + verb + nor + auxiliary + subject + verb.' },
-  ]] },
+  until: {
+    meaning: 'വരെ / അതുവരെ', category: 'Conjunction / preposition', usage: 'Shows that an action or situation continues up to a particular time or point.', batches: [[
+      { english: 'I will wait until you come.', malayalam: 'നീ വരുന്നതുവരെ ഞാൻ കാത്തിരിക്കും.', structure: 'Subject + will + V1 + until + subject + present simple.' },
+      { english: "Don't leave until I return.", malayalam: 'ഞാൻ തിരിച്ചുവരുന്നതുവരെ പോകല്ലേ.', structure: 'Negative imperative + until + subject + present simple.' },
+      { english: 'We worked until midnight.', malayalam: 'ഞങ്ങൾ അർദ്ധരാത്രിവരെ ജോലി ചെയ്തു.', structure: 'Subject + V2 + until + time expression.' },
+      { english: 'The shop is open until six.', malayalam: 'കട ആറുമണിവരെ തുറന്നിരിക്കും.', structure: 'Subject + be + adjective + until + time.' },
+      { english: 'She stayed until the rain stopped.', malayalam: 'മഴ നിൽക്കുന്നതുവരെ അവൾ അവിടെ നിന്നു.', structure: 'Subject + V2 + until + subject + past simple.' },
+    ], [
+      { english: 'Keep stirring until the sauce thickens.', malayalam: 'സോസ് കട്ടിയാകുന്നതുവരെ ഇളക്കിക്കൊണ്ടിരിക്കുക.', structure: 'Imperative + until + subject + present simple.' },
+      { english: 'He had never travelled until last year.', malayalam: 'കഴിഞ്ഞ വർഷം വരെ അവൻ യാത്ര ചെയ്തിരുന്നില്ല.', structure: 'Subject + had never + V3 + until + time.' },
+      { english: 'You cannot enter until the doors open.', malayalam: 'വാതിലുകൾ തുറക്കുന്നതുവരെ നിനക്ക് അകത്തു കടക്കാനാവില്ല.', structure: 'Subject + cannot + V1 + until + clause.' },
+      { english: 'I did not know the answer until you explained it.', malayalam: 'നീ വിശദീകരിക്കുന്നതുവരെ എനിക്ക് ഉത്തരം അറിയില്ലായിരുന്നു.', structure: 'Subject + did not + V1 + until + clause.' },
+      { english: 'Wait here until the bus arrives.', malayalam: 'ബസ് എത്തുന്നതുവരെ ഇവിടെ കാത്തിരിക്കുക.', structure: 'Imperative + until + subject + present simple.' },
+    ]]
+  },
+  'as soon as': {
+    meaning: 'ഉടനെ / ചെയ്ത ഉടൻ', category: 'Subordinating conjunction', usage: 'Connects two events when the second happens immediately after the first.', batches: [[
+      { english: 'Call me as soon as you arrive.', malayalam: 'നീ എത്തിയ ഉടൻ എന്നെ വിളിക്കൂ.', structure: 'Imperative + as soon as + subject + present simple.' },
+      { english: 'As soon as the bell rang, the students left.', malayalam: 'മണി മുഴങ്ങിയ ഉടൻ വിദ്യാർത്ഥികൾ പോയി.', structure: 'As soon as + subject + V2, subject + V2.' },
+      { english: "I'll let you know as soon as I hear anything.", malayalam: 'എന്തെങ്കിലും അറിഞ്ഞ ഉടൻ ഞാൻ നിന്നെ അറിയിക്കും.', structure: 'Subject + will + V1 + as soon as + present simple.' },
+      { english: 'She smiled as soon as she saw her friend.', malayalam: 'സുഹൃത്തിനെ കണ്ട ഉടൻ അവൾ പുഞ്ചിരിച്ചു.', structure: 'Subject + V2 + as soon as + subject + V2.' },
+      { english: 'As soon as it stops raining, we can go out.', malayalam: 'മഴ നിന്ന ഉടൻ നമുക്ക് പുറത്തുപോകാം.', structure: 'As soon as + present simple, subject + can + V1.' },
+    ], [
+      { english: 'Please send the file as soon as you finish.', malayalam: 'പൂർത്തിയാക്കിയ ഉടൻ ഫയൽ അയയ്ക്കൂ.', structure: 'Imperative + as soon as + present simple.' },
+      { english: 'The baby fell asleep as soon as the car started.', malayalam: 'കാർ തുടങ്ങിയ ഉടൻ കുഞ്ഞ് ഉറങ്ങി.', structure: 'Subject + V2 + as soon as + subject + V2.' },
+      { english: 'As soon as we get home, we will eat.', malayalam: 'വീട്ടിലെത്തിയ ഉടൻ ഞങ്ങൾ ഭക്ഷണം കഴിക്കും.', structure: 'As soon as + present simple, subject + will + V1.' },
+      { english: 'He apologized as soon as he realized his mistake.', malayalam: 'തന്റെ തെറ്റ് മനസ്സിലാക്കിയ ഉടൻ അവൻ ക്ഷമ ചോദിച്ചു.', structure: 'Subject + V2 + as soon as + subject + V2.' },
+      { english: 'I will start as soon as everyone is ready.', malayalam: 'എല്ലാവരും തയ്യാറായ ഉടൻ ഞാൻ തുടങ്ങും.', structure: 'Subject + will + V1 + as soon as + present simple.' },
+    ]]
+  },
+  'neither...nor': {
+    meaning: 'ഇതുമില്ല അതുമില്ല / രണ്ടുമല്ല', category: 'Correlative conjunction', usage: 'Joins two negative alternatives. The verb agrees with the nearer subject.', batches: [[
+      { english: 'Neither Ravi nor Anu was late.', malayalam: 'രവിയോ അനുവോ വൈകിയില്ല.', structure: 'Neither + singular noun + nor + singular noun + singular verb.' },
+      { english: 'She likes neither tea nor coffee.', malayalam: 'അവൾക്ക് ചായയും കാപ്പിയും ഇഷ്ടമല്ല.', structure: 'Subject + verb + neither + noun + nor + noun.' },
+      { english: 'Neither the manager nor the employees were available.', malayalam: 'മാനേജരോ ജീവനക്കാരോ ലഭ്യമായിരുന്നില്ല.', structure: 'Neither + singular subject + nor + plural subject + plural verb.' },
+      { english: 'He can neither swim nor drive.', malayalam: 'അവന് നീന്താനോ വാഹനമോടിക്കാനോ കഴിയില്ല.', structure: 'Subject + modal + neither + V1 + nor + V1.' },
+      { english: 'Neither of the answers is correct.', malayalam: 'ഉത്തരങ്ങളിൽ ഒന്നുപോലും ശരിയല്ല.', structure: 'Neither of + plural noun + singular verb (formal usage).' },
+    ], [
+      { english: 'Neither my brother nor I am interested in cricket.', malayalam: 'എന്റെ സഹോദരനും എനിക്കും ക്രിക്കറ്റിൽ താൽപര്യമില്ല.', structure: 'Neither + noun + nor + I + am.' },
+      { english: 'They neither called nor sent a message.', malayalam: 'അവർ വിളിക്കുകയോ സന്ദേശം അയയ്ക്കുകയോ ചെയ്തില്ല.', structure: 'Subject + neither + V2 + nor + V2.' },
+      { english: 'Neither the keys nor the wallet is on the table.', malayalam: 'താക്കോലോ പേഴ്സോ മേശപ്പുറത്തില്ല.', structure: 'Neither + plural noun + nor + singular noun + singular verb.' },
+      { english: 'She is neither angry nor upset.', malayalam: 'അവൾക്ക് ദേഷ്യമോ വിഷമമോ ഇല്ല.', structure: 'Subject + be + neither + adjective + nor + adjective.' },
+      { english: 'Neither did he complain nor did he leave.', malayalam: 'അവൻ പരാതിപ്പെടുകയോ അവിടെനിന്ന് പോകുകയോ ചെയ്തില്ല.', structure: 'Neither + auxiliary + subject + verb + nor + auxiliary + subject + verb.' },
+    ]]
+  },
 };
 
 function initialSessions(module: TutorModule): LearningSession[] {
@@ -144,7 +150,21 @@ export default function TutorExperience({ module, onBack, sessionId, onBackSessi
   };
 
   return <main className="tutor-screen tutor-redesign tutor-inner-open">
-    <header className="tutor-header tutor-header-detail">{session ? <button className="tutor-inline-back chat-back" onClick={onBackSessions} aria-label="Back to module">←</button> : <button className="tutor-inline-back module-back" onClick={onBack}>← <span>AI Tutor</span></button>}<button className="tutor-menu-button" aria-label="Open session history" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)}>☰</button><div className="tutor-header-main"><span className="tutor-hero-kicker">Module {String(module.number).padStart(2, '0')}</span><h1>{module.title}</h1></div>{session && <button className="tutor-new-chat" onClick={startNewChat}>＋<span>New chat</span></button>}</header>
+    <header className="tutor-header tutor-header-detail">
+
+
+    <button className="tutor-menu-button" aria-label="Open session history" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)}>☰</button><div className="tutor-header-main"><span className="tutor-hero-kicker">Module {String(module.number).padStart(2, '0')}</span><h1>{module.title}</h1></div>
+    {session && 
+    <button className="tutor-new-chat" onClick={startNewChat}>＋<span>New chat</span>
+    </button>}
+
+
+    </header>
+
+
+
+
+
     {menuOpen && <><button className="tutor-drawer-backdrop" aria-label="Close session menu" onClick={() => setMenuOpen(false)} /><aside className="tutor-session-drawer"><div className="tutor-drawer-title"><strong>{module.title}</strong><button onClick={() => setMenuOpen(false)} aria-label="Close menu">×</button></div><button className="tutor-drawer-new" onClick={startNewChat}>＋ New chat</button><div className="tutor-drawer-list">{sessions.map((item) => <button key={item.id} className={`tutor-drawer-item ${item.id === sessionId ? 'selected' : ''}`} onClick={() => open(item.id)}><span>{item.title}</span><small>{item.completed} patterns completed</small></button>)}</div>{grammar && <button className="tutor-drawer-back" onClick={() => { setMenuOpen(false); onBackSessions(); }}>← Back to sessions</button>}<button className="tutor-drawer-back" onClick={onBack}>← Back to AI Tutor</button></aside></>}
     <div className="tutor-content">
       {!session ? <>
