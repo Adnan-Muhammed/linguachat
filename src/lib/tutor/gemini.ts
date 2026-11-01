@@ -2,8 +2,8 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 import type { ExpressionLesson, TutorExample, TutorSession } from './types';
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.6-flash';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-2.5-flash';
 const API_ROOT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export class GeminiTutorError extends Error {
@@ -27,35 +27,32 @@ function getKey() {
 
 function schemaFor(session: TutorSession) {
   const example = {
-    type: 'object',
+    type: 'OBJECT' as const,
     properties: {
-      english: { type: 'string' },
-      malayalam: { type: 'string' },
-      structure: { type: 'string' },
+      english: { type: 'STRING' as const },
+      malayalam: { type: 'STRING' as const },
+      structure: { type: 'STRING' as const },
     },
     required: ['english', 'malayalam', 'structure'],
-    additionalProperties: false,
   };
 
   if (session.kind === 'expression') {
     return {
-      type: 'object',
+      type: 'OBJECT' as const,
       properties: {
-        meaningMalayalam: { type: 'string' },
-        category: { type: 'string' },
-        usageMalayalam: { type: 'string' },
-        examples: { type: 'array', minItems: 5, maxItems: 5, items: example },
+        meaningMalayalam: { type: 'STRING' as const },
+        category: { type: 'STRING' as const },
+        usageMalayalam: { type: 'STRING' as const },
+        examples: { type: 'ARRAY' as const, minItems: 5, maxItems: 5, items: example },
       },
       required: ['meaningMalayalam', 'category', 'usageMalayalam', 'examples'],
-      additionalProperties: false,
     };
   }
 
   return {
-    type: 'object',
-    properties: { examples: { type: 'array', minItems: 5, maxItems: 5, items: example } },
+    type: 'OBJECT' as const,
+    properties: { examples: { type: 'ARRAY' as const, minItems: 5, maxItems: 5, items: example } },
     required: ['examples'],
-    additionalProperties: false,
   };
 }
 
@@ -131,10 +128,23 @@ function validateExamples(value: unknown, prior: TutorExample[]) {
   return examples;
 }
 
-async function postGemini(action: string, body: unknown, model = MODEL, maxAttempts = 2) {
+function thinkingConfigFor(model: string) {
+  if (model.includes('flash-lite')) {
+    return { thinkingConfig: { thinkingLevel: 'minimal' } };
+  }
+  if (model.startsWith('gemini-3.') || model.startsWith('gemini-4.')) {
+    return { thinkingConfig: { thinkingLevel: 'low' } };
+  }
+  if (model.startsWith('gemini-2.5')) {
+    return { thinkingConfig: { thinkingBudget: 0 } };
+  }
+  return {};
+}
+
+async function postGemini(action: string, body: unknown, model = MODEL, maxAttempts = 2, customTimeoutMs?: number) {
   const key = getKey();
   let response: Response | undefined;
-  const timeoutMs = action === 'countTokens' ? 6_000 : 12_000;
+  const timeoutMs = customTimeoutMs ?? (action === 'countTokens' ? 10_000 : 30_000);
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
       response = await fetch(`${API_ROOT}/${encodeURIComponent(model)}:${action}`, {
@@ -186,7 +196,7 @@ export async function countTutorPrompt(session: TutorSession, batch: number, pri
   try {
     counted = await postGemini('countTokens', { contents: [content] }, model);
   } catch (error) {
-    if (!(error instanceof GeminiTutorError) || error.status !== 503 || MODEL === FALLBACK_MODEL) throw error;
+    if (!(error instanceof GeminiTutorError) || (error.status !== 503 && error.status !== 504) || MODEL === FALLBACK_MODEL) throw error;
     model = FALLBACK_MODEL;
     counted = await postGemini('countTokens', { contents: [content] }, model);
   }
@@ -199,22 +209,25 @@ export async function countTutorPrompt(session: TutorSession, batch: number, pri
 
 export async function generateTutorLesson(session: TutorSession, prior: TutorExample[], prepared: { prompt: string; inputTokens: number; model: string }): Promise<GeneratedLesson> {
   const content = { parts: [{ text: prepared.prompt }] };
-  const makeRequest = (model: string, maxAttempts = 2) => postGemini('generateContent', {
+  const makeRequest = (model: string, timeoutMs: number) => postGemini('generateContent', {
     contents: [content],
     generationConfig: {
-      responseFormat: { text: { mimeType: 'APPLICATION_JSON', schema: schemaFor(session) } },
+      responseMimeType: 'application/json',
+      responseSchema: schemaFor(session),
       maxOutputTokens: 2500,
-      ...(model.startsWith('gemini-3.') || model.startsWith('gemini-4.')
-        ? { thinkingConfig: { thinkingLevel: 'low' } }
-        : {}),
+      ...thinkingConfigFor(model),
     },
-  }, model, maxAttempts);
+  }, model, 1, timeoutMs);
   let response: Record<string, unknown>;
+  const hasFallback = prepared.model !== FALLBACK_MODEL;
+  const primaryTimeout = hasFallback ? 25_000 : 45_000;
+  const fallbackTimeout = 25_000;
   try {
-    response = await makeRequest(prepared.model);
+    response = await makeRequest(prepared.model, primaryTimeout);
   } catch (error) {
-    if (!(error instanceof GeminiTutorError) || error.status !== 503 || prepared.model === FALLBACK_MODEL) throw error;
-    response = await makeRequest(FALLBACK_MODEL, 1);
+    if (!(error instanceof GeminiTutorError) || (error.status !== 503 && error.status !== 504) || !hasFallback) throw error;
+    console.warn(`[Gemini Tutor] Primary model ${prepared.model} failed (${error.status}), falling back to ${FALLBACK_MODEL}`);
+    response = await makeRequest(FALLBACK_MODEL, fallbackTimeout);
   }
   const usage = readObject(response.usageMetadata);
   const actualInput = Number(usage.promptTokenCount);
@@ -246,5 +259,94 @@ export async function generateTutorLesson(session: TutorSession, prior: TutorExa
       throw new GeminiTutorError(error.message, error.status, actualInput, actualOutput);
     }
     throw new GeminiTutorError('The tutor returned invalid JSON. Please try again.', 502, actualInput, actualOutput);
+  }
+}
+export function isMalayalam(text: string): boolean {
+  return /[\u0D00-\u0D7F]/.test(text);
+}
+
+export function hasEnglishLetters(text: string): boolean {
+  return /[a-zA-Z]/.test(text);
+}
+
+export function formatSentenceTitle(original: string, corrected?: string | null): string {
+  const cleanOriginal = original.trim();
+  const cleanCorrected = corrected?.trim();
+  if (!cleanCorrected) return cleanOriginal;
+
+  const canonicalOrig = cleanOriginal.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const canonicalCorr = cleanCorrected.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  if (canonicalOrig === canonicalCorr) return cleanOriginal;
+
+  const combined = `${cleanOriginal} / ${cleanCorrected}`;
+  if (combined.length <= 180) {
+    return combined;
+  }
+  return cleanOriginal;
+}
+
+export async function detectSentenceCorrection(input: string): Promise<{ hasMistake: boolean; corrected: string | null } | null> {
+  const trimmed = input.trim();
+  if (!trimmed || isMalayalam(trimmed) || !hasEnglishLetters(trimmed)) {
+    return null;
+  }
+
+  const prompt = [
+    'You are an expert English grammar assistant.',
+    `Analyze this English sentence provided by a learner: "${trimmed}"`,
+    'Determine if the sentence contains any grammatical errors, wrong pronouns, subject-verb agreement problems, incorrect tense/aspect, awkward phrasing, or spelling mistakes.',
+    'If the sentence contains any mistakes or needs correction:',
+    '- Set "hasMistake": true',
+    '- Set "corrected": the accurate, grammatically correct and natural English version (keep the same meaning and intended tone).',
+    'If the sentence is already grammatically correct and natural English:',
+    '- Set "hasMistake": false',
+    '- Set "corrected": ""',
+    'Return only the required JSON object.',
+  ].join('\n');
+
+  try {
+    const response = await postGemini('generateContent', {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            hasMistake: { type: 'BOOLEAN' },
+            corrected: { type: 'STRING' },
+          },
+          required: ['hasMistake'],
+        },
+        maxOutputTokens: 250,
+        ...thinkingConfigFor(MODEL),
+      },
+    }, MODEL, 1, 6000);
+
+    const candidates = response?.candidates;
+    const candidate = Array.isArray(candidates) ? candidates[0] : null;
+    const candidateContent = candidate ? (candidate as Record<string, unknown>).content : null;
+    const parts = candidateContent ? (candidateContent as Record<string, unknown>).parts : null;
+    const textPart = Array.isArray(parts) ? (parts[0] as Record<string, unknown>)?.text : null;
+    if (typeof textPart !== 'string') return null;
+
+    const parsed = JSON.parse(textPart) as { hasMistake?: boolean; corrected?: string | null };
+    const hasMistake = Boolean(parsed.hasMistake);
+    const corrected = typeof parsed.corrected === 'string' ? parsed.corrected.trim() : null;
+
+    if (!hasMistake || !corrected) {
+      return { hasMistake: false, corrected: null };
+    }
+
+    const canonicalOriginal = trimmed.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    const canonicalCorrected = corrected.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+
+    if (canonicalOriginal === canonicalCorrected) {
+      return { hasMistake: false, corrected: null };
+    }
+
+    return { hasMistake: true, corrected };
+  } catch (error) {
+    console.warn('[Gemini Tutor] detectSentenceCorrection failed or timed out:', error);
+    return null;
   }
 }

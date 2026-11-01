@@ -13,6 +13,26 @@ import {
 type SessionWithExamples = TutorSession & { examples: TutorExample[] };
 type Usage = { inputTokens: number; outputTokens: number; reservedTokens?: number; dailyLimit: number; usageDate: string };
 
+export function SessionTitle({ title }: { title: string }) {
+  const match = title.match(/^(.+?)\s+\/\s+(.+)$/);
+  if (match) {
+    const mistake = match[1].trim();
+    const corrected = match[2].trim();
+    return (
+      <span className="tutor-title-combo">
+        <span className="tutor-title-mistake" title="Original mistake">
+          {mistake}
+        </span>
+        <span className="tutor-title-sep" aria-hidden="true"> / </span>
+        <span className="tutor-title-corrected" title="Corrected sentence">
+          {corrected}
+        </span>
+      </span>
+    );
+  }
+  return <span className="tutor-title-plain">{title}</span>;
+}
+
 async function readApi<T>(response: Response): Promise<T> {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : 'The tutor request failed. Please try again.');
@@ -77,6 +97,7 @@ export default function TutorExperience({ module, onBack, sessionId, onBackSessi
     try {
       const result = await readApi<{
         batch: number;
+        sessionTitle?: string;
         examples: TutorExample[];
         expressionLesson: { meaningMalayalam: string; category: string; usageMalayalam: string } | null;
         usage: Usage;
@@ -90,6 +111,7 @@ export default function TutorExperience({ module, onBack, sessionId, onBackSessi
         const existing = new Set(current.examples.map((item) => item.fingerprint));
         return {
           ...current,
+          title: result.sessionTitle ?? current.title,
           examples: [...current.examples, ...result.examples.filter((item) => !existing.has(item.fingerprint))],
           expression_meaning: result.expressionLesson?.meaningMalayalam ?? current.expression_meaning,
           expression_category: result.expressionLesson?.category ?? current.expression_category,
@@ -100,6 +122,7 @@ export default function TutorExperience({ module, onBack, sessionId, onBackSessi
       setUsage(result.usage);
       setSessions((current) => current.map((item) => item.id === id ? {
         ...item,
+        title: result.sessionTitle ?? item.title,
         expression_meaning: result.expressionLesson?.meaningMalayalam ?? item.expression_meaning,
         expression_category: result.expressionLesson?.category ?? item.expression_category,
         expression_usage: result.expressionLesson?.usageMalayalam ?? item.expression_usage,
@@ -115,15 +138,24 @@ export default function TutorExperience({ module, onBack, sessionId, onBackSessi
   };
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId) {
+      setActiveSession(null);
+      return;
+    }
     let ignore = false;
+    setLoadingSession(true);
     fetch(`/api/tutor/sessions/${encodeURIComponent(sessionId)}`, { cache: 'no-store' })
-      .then((response) => readApi<SessionWithExamples>(response))
+      .then((response) => readApi<{ session?: TutorSession; examples: TutorExample[] } & TutorSession>(response))
       .then(async (result) => {
         if (ignore) return;
         setNotice('');
-        setActiveSession(result);
-        const maxBatch = result.examples.reduce((max, example) => Math.max(max, example.batch_number ?? 1), 0);
+        const rawSession = (result && result.session ? result.session : result) as TutorSession;
+        const sessionWithExamples: SessionWithExamples = {
+          ...rawSession,
+          examples: result.examples ?? [],
+        };
+        setActiveSession(sessionWithExamples);
+        const maxBatch = sessionWithExamples.examples.reduce((max, example) => Math.max(max, example.batch_number ?? 1), 0);
         setSelectedBatch(Math.max(1, maxBatch));
         if (!maxBatch && autoGenerateFor.current !== sessionId) {
           autoGenerateFor.current = sessionId;
@@ -193,7 +225,8 @@ export default function TutorExperience({ module, onBack, sessionId, onBackSessi
         <button className="tutor-drawer-new" onClick={startNewSession}>＋ New session</button>
         <div className="tutor-drawer-list">
           {visibleSessions.map((item) => <button key={item.id} className={`tutor-drawer-item ${item.id === sessionId ? 'selected' : ''}`} onClick={() => { setMenuOpen(false); setShowLessonForm(false); onSwitchSession(item.id); }}>
-            <span>{item.title}</span><small>{item.kind === 'expression' ? 'Expression lesson' : 'Sentence transformation'}</small>
+            <SessionTitle title={item.title} />
+            <small>{item.kind === 'expression' ? 'Expression lesson' : 'Sentence transformation'}</small>
           </button>)}
           {!visibleSessions.length && !sessionsAreLoading && <small>No saved sessions yet.</small>}
           {sessionsAreLoading && <small>Loading sessions…</small>}
@@ -221,40 +254,43 @@ export default function TutorExperience({ module, onBack, sessionId, onBackSessi
         {notice && <p className="tutor-demo-notice" role="status">{notice}</p>}
         {visibleSessions.length > 0 && <section className="tutor-saved-sessions">
           <h2>Recent sessions</h2>
-          {visibleSessions.map((item) => <button key={item.id} type="button" className="tutor-drawer-item" onClick={() => onOpenSession(item.id)}><span>{item.title}</span><small>{item.kind === 'expression' ? 'Expression lesson' : 'Sentence transformation'}</small></button>)}
+          {visibleSessions.map((item) => <button key={item.id} type="button" className="tutor-drawer-item" onClick={() => onOpenSession(item.id)}>
+            <SessionTitle title={item.title} />
+            <small>{item.kind === 'expression' ? 'Expression lesson' : 'Sentence transformation'}</small>
+          </button>)}
         </section>}
       </> : <>
-        <div className="tutor-chat-top"><div><span className="tutor-session-kicker">Learning session</span><h2>{displayedSession?.title ?? 'Loading lesson…'}</h2></div>
-          {displayedSession && <div className="tutor-progress-label">{expressionMode ? 'Expression lesson' : `Batch ${selectedBatch} of ${MAX_SENTENCE_BATCHES}`}</div>}
-        </div>
-        <div className="tutor-chat-message">
-          <div className="tutor-message-label">Tutor · Gemini lesson</div>
-          {displayedSession && (expressionMode ? <>
-            <h3>Expression: {displayedSession.expression}</h3>
-            <p><b>Meaning:</b> {displayedSession.expression_meaning || 'Generating lesson…'}</p>
-            <p><b>Grammar category:</b> {displayedSession.expression_category || 'Generating lesson…'}</p>
-            <p><b>Usage:</b> {displayedSession.expression_usage || 'Generating lesson…'}</p>
-          </> : <><h3>Base sentence</h3><p>{displayedSession.base_input}</p><p>Natural English transformations, Malayalam translations, and reusable grammar structures.</p></>)}
-          <div className="tutor-example-list">
-            {currentExamples.map((example, index) => <article className="tutor-example" key={example.fingerprint ?? `${selectedBatch}-${index}`}>
-              <div className="tutor-example-number">{(selectedBatch - 1) * 5 + index + 1}</div>
-              <div><h4>{example.english}</h4>{selectedBatch === 1 && index === 0 && !expressionMode && <small>Natural English / corrected sentence</small>}<p><b>Malayalam</b><span>{example.malayalam}</span></p><p><b>Structure</b><span>{example.structure}</span></p></div>
-            </article>)}
+          <div className="tutor-chat-top"><div><span className="tutor-session-kicker">Learning session</span><h2>{displayedSession ? <SessionTitle title={displayedSession.title} /> : 'Loading lesson…'}</h2></div>
+            {displayedSession && <div className="tutor-progress-label">{expressionMode ? 'Expression lesson' : `Batch ${selectedBatch} of ${MAX_SENTENCE_BATCHES}`}</div>}
           </div>
-          {(sessionIsLoading || generating) && <p className="tutor-demo-notice" role="status">{generating ? 'Preparing five new examples…' : 'Loading saved lesson…'}</p>}
-          {!sessionIsLoading && !generating && displayedSession && !displayedSession.examples.length && <p className="tutor-demo-notice">No examples were saved yet. Try generating the lesson again.</p>}
-          {notice && <p className="tutor-demo-notice" role="alert">{notice}</p>}
-        </div>
-        <div className="tutor-chat-footer">
-          {usage && <div className="tutor-progress-row"><span>{usageTotal.toLocaleString()} / {usage.dailyLimit.toLocaleString()} tokens used today (UTC)</span><div className="tutor-progress"><span style={{ width: `${Math.min(100, (usageTotal / usage.dailyLimit) * 100)}%` }} /></div></div>}
-          {displayedSession && !currentExamples.length && !sessionIsLoading && !generating && <button className="tutor-primary-btn" onClick={() => generateBatch(displayedSession.id)}>Generate examples →</button>}
-          {currentExamples.length > 0 && <>
-            <span className="tutor-progress-label">{displayedSession?.kind === 'expression' ? '5 examples' : `${Math.min(selectedBatch * 5, 30)} of 30 examples`}</span>
-            {selectedBatch > 1 && <button className="tutor-secondary-btn" onClick={() => setSelectedBatch((batch) => batch - 1)}>← Previous</button>}
-            {hasNext && <button className="tutor-primary-btn" onClick={handleNext} disabled={generating}>{generating ? 'Generating…' : 'Continue Learning →'}</button>}
-          </>}
-        </div>
-      </>}
-    </div>
+          <div className="tutor-chat-message">
+            <div className="tutor-message-label">Tutor · Gemini lesson</div>
+            {displayedSession && (expressionMode ? <>
+              <h3>Expression: {displayedSession.expression}</h3>
+              <p><b>Meaning:</b> {displayedSession.expression_meaning || 'Generating lesson…'}</p>
+              <p><b>Grammar category:</b> {displayedSession.expression_category || 'Generating lesson…'}</p>
+              <p><b>Usage:</b> {displayedSession.expression_usage || 'Generating lesson…'}</p>
+            </> : <><h3>Base sentence</h3><p>{displayedSession.base_input}</p><p>Natural English transformations, Malayalam translations, and reusable grammar structures.</p></>)}
+            <div className="tutor-example-list">
+              {currentExamples.map((example, index) => <article className="tutor-example" key={example.fingerprint ?? `${selectedBatch}-${index}`}>
+                <div className="tutor-example-number">{(selectedBatch - 1) * 5 + index + 1}</div>
+                <div><h4>{example.english}</h4>{selectedBatch === 1 && index === 0 && !expressionMode && <small>Natural English / corrected sentence</small>}<p><b>Malayalam</b><span>{example.malayalam}</span></p><p><b>Structure</b><span>{example.structure}</span></p></div>
+              </article>)}
+            </div>
+            {(sessionIsLoading || generating) && <p className="tutor-demo-notice" role="status">{generating ? 'Preparing five new examples…' : 'Loading saved lesson…'}</p>}
+            {!sessionIsLoading && !generating && displayedSession && !displayedSession.examples.length && <p className="tutor-demo-notice">No examples were saved yet. Try generating the lesson again.</p>}
+            {notice && <p className="tutor-demo-notice" role="alert">{notice}</p>}
+          </div>
+          <div className="tutor-chat-footer">
+            {usage && <div className="tutor-progress-row"><span>{usageTotal.toLocaleString()} / {usage.dailyLimit.toLocaleString()} tokens used today (UTC)</span><div className="tutor-progress"><span style={{ width: `${Math.min(100, (usageTotal / usage.dailyLimit) * 100)}%` }} /></div></div>}
+            {displayedSession && !currentExamples.length && !sessionIsLoading && !generating && <button className="tutor-primary-btn" onClick={() => generateBatch(displayedSession.id)}>Generate examples →</button>}
+            {currentExamples.length > 0 && <>
+              <span className="tutor-progress-label">{displayedSession?.kind === 'expression' ? '5 examples' : `${Math.min(selectedBatch * 5, 30)} of 30 examples`}</span>
+              {selectedBatch > 1 && <button className="tutor-secondary-btn" onClick={() => setSelectedBatch((batch) => batch - 1)}>← Previous</button>}
+              {hasNext && <button className="tutor-primary-btn" onClick={handleNext} disabled={generating}>{generating ? 'Generating…' : 'Continue Learning →'}</button>}
+            </>}
+          </div>
+        </>}
+      </div>
   </main>;
 }

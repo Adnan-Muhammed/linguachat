@@ -2310,3 +2310,47 @@ svg {
 .tutor-saved-sessions { display:grid; gap:8px; max-width:820px; margin:20px auto }
 .tutor-saved-sessions h2 { margin:0 0 4px; font-size:16px }
 .tutor-saved-sessions .tutor-drawer-item { border:1px solid var(--line); background:var(--panel); }
+/* AI Tutor - Sentence Pattern Explorer Mistake vs Corrected Title */
+.tutor-title-combo {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  row-gap: 2px;
+  line-height: 1.35;
+}
+
+.tutor-title-mistake {
+  color: #dc2626;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(220, 38, 38, 0.7);
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+:root[data-theme=dark] .tutor-title-mistake {
+  color: #f87171;
+  text-decoration-color: rgba(248, 113, 113, 0.7);
+}
+
+.tutor-title-sep {
+  color: var(--mute, #7c7891);
+  font-weight: 400;
+  padding: 0 4px;
+  user-select: none;
+}
+
+.tutor-title-corrected {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+:root[data-theme=dark] .tutor-title-corrected {
+  color: #4ade80;
+}
+
+.tutor-title-plain {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+}

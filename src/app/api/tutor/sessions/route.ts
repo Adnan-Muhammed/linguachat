@@ -4,6 +4,12 @@ import {
   SENTENCE_MODULE_ID,
   SUPPORTED_EXPRESSIONS,
 } from '@/lib/tutor/types';
+import {
+  detectSentenceCorrection,
+  formatSentenceTitle,
+  hasEnglishLetters,
+  isMalayalam,
+} from '@/lib/tutor/gemini';
 
 export const runtime = 'nodejs';
 
@@ -20,7 +26,50 @@ export async function GET(request: Request) {
     .select('id,module_id,kind,title,base_input,expression,expression_meaning,expression_category,expression_usage,created_at')
     .eq('module_id', moduleId).order('created_at', { ascending: false }).limit(100);
   if (error) return Response.json({ error: 'Could not load tutor sessions.' }, { status: 500 });
-  return Response.json({ sessions: data ?? [] }, { headers: { 'cache-control': 'private, no-store' } });
+
+  const sessions = data ?? [];
+
+  if (moduleId === SENTENCE_MODULE_ID && sessions.length > 0) {
+    const uncorrectedSessions = sessions.filter(
+      (s) => s.kind === 'sentence' && !s.title.includes(' / ') && !isMalayalam(s.base_input) && hasEnglishLetters(s.base_input)
+    );
+
+    if (uncorrectedSessions.length > 0) {
+      const candidateIds = uncorrectedSessions.map((s) => s.id);
+      const { data: firstExamples } = await supabase
+        .from('ai_tutor_examples')
+        .select('session_id,english')
+        .in('session_id', candidateIds)
+        .eq('batch_number', 1)
+        .order('created_at', { ascending: true });
+
+      if (firstExamples && firstExamples.length > 0) {
+        const exampleMap = new Map<string, string>();
+        for (const ex of firstExamples) {
+          if (!exampleMap.has(ex.session_id)) {
+            exampleMap.set(ex.session_id, ex.english);
+          }
+        }
+
+        for (const s of uncorrectedSessions) {
+          const exEnglish = exampleMap.get(s.id);
+          if (exEnglish) {
+            const canonicalBase = s.base_input.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+            const canonicalEx = exEnglish.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+            if (canonicalBase !== canonicalEx) {
+              const formatted = formatSentenceTitle(s.base_input, exEnglish);
+              if (formatted !== s.title) {
+                s.title = formatted;
+                void supabase.from('ai_tutor_sessions').update({ title: formatted }).eq('id', s.id);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return Response.json({ sessions }, { headers: { 'cache-control': 'private, no-store' } });
 }
 
 export async function POST(request: Request) {
@@ -45,6 +94,10 @@ export async function POST(request: Request) {
   let expression: string | null = null;
   if (moduleId === SENTENCE_MODULE_ID) {
     kind = 'sentence';
+    const correction = await detectSentenceCorrection(input);
+    if (correction?.hasMistake && correction.corrected) {
+      title = formatSentenceTitle(input, correction.corrected);
+    }
   } else if (moduleId === EXPRESSION_MODULE_ID) {
     const normalized = input.toLocaleLowerCase().replace(/[.…]/g, '').replace(/\s+/g, ' ').trim();
     const match = SUPPORTED_EXPRESSIONS.find((item) => item.toLocaleLowerCase().replace(/[.…]/g, '').replace(/\s+/g, ' ').trim() === normalized);

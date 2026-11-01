@@ -1,5 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
-import { countTutorPrompt, generateTutorLesson, GeminiTutorError } from '@/lib/tutor/gemini';
+import {
+  countTutorPrompt,
+  formatSentenceTitle,
+  generateTutorLesson,
+  GeminiTutorError,
+  hasEnglishLetters,
+  isMalayalam,
+} from '@/lib/tutor/gemini';
 import type { TutorExample, TutorSession } from '@/lib/tutor/types';
 
 export const runtime = 'nodejs';
@@ -77,8 +84,26 @@ export async function POST(request: Request) {
     if (completeError || !Array.isArray(completed) || !completed[0]) {
       throw new GeminiTutorError('The generated lesson could not be saved. Please try again.', 500, actualInput, actualOutput);
     }
+
+    let sessionTitle = tutorSession.title;
+    if (tutorSession.kind === 'sentence' && !tutorSession.title.includes(' / ') && !isMalayalam(tutorSession.base_input) && hasEnglishLetters(tutorSession.base_input)) {
+      const firstExample = lesson.examples[0]?.english;
+      if (firstExample) {
+        const canonicalBase = tutorSession.base_input.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+        const canonicalEx = firstExample.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+        if (canonicalBase !== canonicalEx) {
+          const updatedTitle = formatSentenceTitle(tutorSession.base_input, firstExample);
+          if (updatedTitle !== tutorSession.title) {
+            sessionTitle = updatedTitle;
+            void supabase.from('ai_tutor_sessions').update({ title: updatedTitle }).eq('id', sessionId);
+          }
+        }
+      }
+    }
+
     return Response.json({
       batch: batch,
+      sessionTitle: sessionTitle,
       examples: lesson.examples.map((example) => ({ ...example, batch_number: batch })),
       expressionLesson: lesson.expressionLesson,
       usage: {
