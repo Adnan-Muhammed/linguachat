@@ -1,0 +1,15 @@
+[33m25d75cb[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfrontend-tweaks[m[33m, [m[1;31morigin/frontend-tweaks[m[33m, [m[1;32mbackup-ai-latest[m[33m)[m Right after implementation of AI Feature
+[33m2ad24a3[m small arrow button for back button removed
+[33mab04d3c[m Mirror Grammar Patterns sessions to Sentence Pattern Explorer flow
+[33m620e401[m Mirror Grammar Patterns sessions to Sentence Pattern Explorer flow
+[33md56ea8d[m Redesign AI tutor learning experience
+[33mb4f44da[m feat(tutor): implement AI Tutor UI/UX and 18 learning module placeholders
+[33m6ca5bd2[m Applied globals.css tweaks
+[33m7522292[m AI feature basic UI implemented
+[33m4b4a47c[m solve the conflict
+[33mde6b1b8[m fix(video-call): fix blank remote video issue for callee (previously only caller could see video) with claude
+[33me049d19[m testing again to see if the bug has been fixed
+[33m104c77d[m fix(video-call): fix blank remote video issue for callee (previously only caller could see video)
+[33m8e0e1d2[m Frontend tweaks (#3)
+[33mf3ab178[m esting to see if the bug has been fixed
+[33mfe03471[m now now be able to see both your local video in the picture-in-picture box and the remote user's video filling the main screen simultaneously.
