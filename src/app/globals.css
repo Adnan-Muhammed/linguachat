@@ -479,7 +479,8 @@ svg {
 
 .nav.active {
   background: #fff;
-  color: var(--nav)
+  color: var(--nav);
+  border-radius: 50%
 }
 
 :root[data-theme=dark] .nav.active {
@@ -1993,6 +1994,12 @@ svg {
 
   #app[data-tab=profile] {
     grid-template-columns: 76px 1fr
+  }
+}
+
+@media (min-width:768px) {
+  .tutor-header .tutor-theme {
+    display: none
   }
 }
 
