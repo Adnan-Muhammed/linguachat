@@ -1855,19 +1855,132 @@ svg {
 #app[data-tutor-route=open] { grid-template-columns:minmax(0,1fr) }
 #app[data-tutor-route=open] .rail,#app[data-tutor-route=open] .list,#app[data-tutor-route=open] .bottomnav,#app[data-tutor-route=open] .fab { display:none!important }
 #app[data-tutor-route=open] .main { grid-column:1; width:100%; height:100%; }
-.tutor-menu-button { position:absolute; left:16px; display:grid; place-items:center; width:40px; height:40px; border:1px solid rgba(255,255,255,.28); border-radius:10px; background:rgba(255,255,255,.14); color:var(--hdr-ink); font-size:19px; cursor:pointer }
+/* Tutor Layout with Persistent Sidebar (ChatGPT/Gemini style) */
+.tutor-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg);
+}
+
+.tutor-layout .tutor-main-area {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  background: var(--bg);
+}
+
+.tutor-menu-button { position:absolute; left:16px; display:grid; place-items:center; width:40px; height:40px; border:1px solid rgba(255,255,255,.28); border-radius:10px; background:rgba(255,255,255,.14); color:var(--hdr-ink); font-size:19px; cursor:pointer; transition:background .15s, border-color .15s }
+.tutor-menu-button:hover, .tutor-menu-button.active { background:rgba(255,255,255,.26) }
 .tutor-new-chat { position:absolute; right:16px; display:flex; align-items:center; gap:6px; padding:9px 11px; border:1px solid rgba(255,255,255,.28); border-radius:10px; background:rgba(255,255,255,.14); color:var(--hdr-ink); font:inherit; font-size:12px; cursor:pointer }
-.tutor-drawer-backdrop { position:fixed; z-index:40; inset:0; border:0; background:#09051080; cursor:pointer }
-.tutor-session-drawer { position:fixed; z-index:41; inset:0 auto 0 0; display:flex; flex-direction:column; width:min(340px,86vw); padding:14px; background:var(--panel); color:var(--ink); box-shadow:var(--sh) }
+
+/* Desktop: side-by-side sidebar like Gemini/ChatGPT */
+@media (min-width: 769px) {
+  .tutor-drawer-backdrop {
+    display: none !important;
+  }
+
+  .tutor-session-drawer {
+    position: relative;
+    z-index: 10;
+    inset: auto;
+    display: flex;
+    flex-direction: column;
+    width: 290px;
+    min-width: 290px;
+    max-width: 290px;
+    height: 100%;
+    padding: 16px 14px;
+    background: var(--panel);
+    color: var(--ink);
+    border-right: 1px solid var(--line);
+    box-shadow: none;
+    transition: width .25s cubic-bezier(0.4, 0, 0.2, 1),
+                min-width .25s cubic-bezier(0.4, 0, 0.2, 1),
+                max-width .25s cubic-bezier(0.4, 0, 0.2, 1),
+                padding .25s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity .2s ease;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .tutor-layout.sidebar-closed .tutor-session-drawer,
+  .tutor-session-drawer.closed {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border-right: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* Mobile: overlay drawer */
+@media (max-width: 768px) {
+  .tutor-drawer-backdrop {
+    position: fixed;
+    z-index: 40;
+    inset: 0;
+    border: 0;
+    background: #09051080;
+    cursor: pointer;
+  }
+
+  .tutor-session-drawer {
+    position: fixed;
+    z-index: 41;
+    inset: 0 auto 0 0;
+    display: flex;
+    flex-direction: column;
+    width: min(340px, 86vw);
+    height: 100%;
+    padding: 14px;
+    background: var(--panel);
+    color: var(--ink);
+    box-shadow: var(--sh);
+    transform: translateX(-100%);
+    transition: transform .25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .tutor-layout.sidebar-open .tutor-session-drawer,
+  .tutor-session-drawer.open {
+    transform: translateX(0);
+  }
+
+  .tutor-layout.sidebar-closed .tutor-session-drawer,
+  .tutor-session-drawer.closed {
+    transform: translateX(-100%);
+    display: none;
+    pointer-events: none;
+  }
+}
+
 .tutor-drawer-title { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 4px 14px; border-bottom:1px solid var(--line); font-size:14px }
-.tutor-drawer-title button { border:0; background:transparent; color:var(--mute); font-size:24px; cursor:pointer }
-.tutor-drawer-new { margin:12px 0; padding:11px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink); text-align:left; font:inherit; font-size:13px; cursor:pointer }
-.tutor-drawer-list { display:grid; align-content:start; gap:5px; overflow:auto; flex:1 }
-.tutor-drawer-item { display:grid; gap:4px; padding:11px; border:0; border-radius:9px; background:transparent; color:var(--ink); text-align:left; font:inherit; cursor:pointer }
+.tutor-drawer-title-main { display:flex; flex-direction:column; min-width:0; overflow:hidden }
+.tutor-drawer-kicker { font-size:11px; font-weight:700; color:var(--acc); text-transform:uppercase; letter-spacing:.04em }
+.tutor-drawer-title-main strong { font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.tutor-drawer-title .tutor-drawer-close { display:grid; place-items:center; width:32px; height:32px; border:0; border-radius:8px; background:transparent; color:var(--mute); font-size:20px; cursor:pointer; flex-shrink:0; transition:background .15s, color .15s }
+.tutor-drawer-title .tutor-drawer-close:hover { background:var(--panel2); color:var(--ink) }
+.tutor-drawer-new { margin:12px 0; padding:11px 14px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink); text-align:left; font:inherit; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; transition:border-color .15s, background .15s }
+.tutor-drawer-new:hover { border-color:var(--acc); background:var(--acc-soft); color:var(--acc) }
+.tutor-drawer-list { display:grid; align-content:start; gap:5px; overflow-y:auto; flex:1; min-height:0; padding-right:4px }
+.tutor-drawer-item { display:grid; gap:4px; padding:10px 12px; border:0; border-radius:9px; background:transparent; color:var(--ink); text-align:left; font:inherit; cursor:pointer; transition:background .15s }
 .tutor-drawer-item:hover,.tutor-drawer-item.selected { background:var(--acc-soft) }
-.tutor-drawer-item span { font-size:13px; font-weight:600 }
+.tutor-drawer-item span { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 .tutor-drawer-item small { color:var(--mute); font-size:11px }
-.tutor-drawer-back { margin-top:8px; padding:10px; border:0; border-radius:9px; background:transparent; color:var(--acc); text-align:left; font:inherit; font-size:12px; cursor:pointer }
+.tutor-drawer-back { margin-top:8px; padding:10px 12px; border:0; border-radius:9px; background:transparent; color:var(--acc); text-align:left; font:inherit; font-size:12px; font-weight:600; cursor:pointer; transition:background .15s }
+.tutor-drawer-back:hover { background:var(--acc-soft) }
 @media(max-width:900px) { .tutor-redesign-grid { grid-template-columns:repeat(2,minmax(0,1fr)) } }
 @media(max-width:600px) {
   .tutor-redesign .tutor-header { height:auto; min-height:92px; padding:max(16px,env(safe-area-inset-top)) 58px 14px }

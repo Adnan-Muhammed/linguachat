@@ -52,6 +52,34 @@ export default function TutorExperience({ module, onBack, sessionId, onBackSessi
   const [selectedBatch, setSelectedBatch] = useState(1);
   const [notice, setNotice] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('tutor_sidebar_open');
+      if (saved !== null) {
+        setMenuOpen(saved === 'true');
+      } else if (window.innerWidth >= 900) {
+        setMenuOpen(true);
+      }
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    setMenuOpen((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('tutor_sidebar_open', String(next));
+      }
+      return next;
+    });
+  };
+
+  const closeSidebar = () => {
+    setMenuOpen(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tutor_sidebar_open', 'false');
+    }
+  };
   const [showLessonForm, setShowLessonForm] = useState(false);
   const [lessonDraft, setLessonDraft] = useState('');
   const [loadingSessions, setLoadingSessions] = useState(true);
@@ -183,7 +211,9 @@ export default function TutorExperience({ module, onBack, sessionId, onBackSessi
       setSessions((current) => [result.session, ...current]);
       setLessonDraft('');
       setShowLessonForm(false);
-      setMenuOpen(false);
+      if (typeof window !== 'undefined' && window.innerWidth < 769) {
+        setMenuOpen(false);
+      }
       onOpenSession(result.session.id);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Could not create the lesson.');
@@ -195,7 +225,9 @@ export default function TutorExperience({ module, onBack, sessionId, onBackSessi
 
   const startNewSession = () => {
     setShowLessonForm(true);
-    setMenuOpen(false);
+    if (typeof window !== 'undefined' && window.innerWidth < 769) {
+      setMenuOpen(false);
+    }
     if (sessionId) onBackSessions();
   };
 
@@ -212,30 +244,75 @@ export default function TutorExperience({ module, onBack, sessionId, onBackSessi
   const usageTotal = (usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0) + (usage?.reservedTokens ?? 0);
   const hasNext = selectedBatch < availableBatches || (!expressionMode && availableBatches < MAX_SENTENCE_BATCHES);
 
-  return <main className="tutor-screen tutor-redesign tutor-inner-open">
-    <header className="tutor-header tutor-header-detail">
-      <button className="tutor-menu-button" aria-label="Open session history" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)}>☰</button>
-      <div className="tutor-header-main"><span className="tutor-hero-kicker">Module {String(module.number).padStart(2, '0')}</span><h1>{module.title}</h1></div>
-      {sessionId && <button className="tutor-new-chat" onClick={startNewSession}>＋<span>New session</span></button>}
-    </header>
+  return (
+    <div className={`tutor-layout ${menuOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+      {menuOpen && (
+        <button
+          className="tutor-drawer-backdrop"
+          aria-label="Close session menu"
+          onClick={closeSidebar}
+        />
+      )}
 
-    {menuOpen && <><button className="tutor-drawer-backdrop" aria-label="Close session menu" onClick={() => setMenuOpen(false)} />
-      <aside className="tutor-session-drawer">
-        <div className="tutor-drawer-title"><strong>{module.title}</strong><button onClick={() => setMenuOpen(false)} aria-label="Close menu">×</button></div>
+      <aside className={`tutor-session-drawer ${menuOpen ? 'open' : 'closed'}`}>
+        <div className="tutor-drawer-title">
+          <div className="tutor-drawer-title-main">
+            <span className="tutor-drawer-kicker">Module {String(module.number).padStart(2, '0')}</span>
+            <strong>{module.title}</strong>
+          </div>
+          <button
+            type="button"
+            className="tutor-drawer-close"
+            onClick={closeSidebar}
+            aria-label="Collapse sidebar"
+            title="Collapse sidebar"
+          >
+            ×
+          </button>
+        </div>
         <button className="tutor-drawer-new" onClick={startNewSession}>＋ New session</button>
         <div className="tutor-drawer-list">
-          {visibleSessions.map((item) => <button key={item.id} className={`tutor-drawer-item ${item.id === sessionId ? 'selected' : ''}`} onClick={() => { setMenuOpen(false); setShowLessonForm(false); onSwitchSession(item.id); }}>
-            <SessionTitle title={item.title} />
-            <small>{item.kind === 'expression' ? 'Expression lesson' : 'Sentence transformation'}</small>
-          </button>)}
+          {visibleSessions.map((item) => (
+            <button
+              key={item.id}
+              className={`tutor-drawer-item ${item.id === sessionId ? 'selected' : ''}`}
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.innerWidth < 769) {
+                  setMenuOpen(false);
+                }
+                setShowLessonForm(false);
+                onSwitchSession(item.id);
+              }}
+            >
+              <SessionTitle title={item.title} />
+              <small>{item.kind === 'expression' ? 'Expression lesson' : 'Sentence transformation'}</small>
+            </button>
+          ))}
           {!visibleSessions.length && !sessionsAreLoading && <small>No saved sessions yet.</small>}
           {sessionsAreLoading && <small>Loading sessions…</small>}
         </div>
         <button className="tutor-drawer-back" onClick={onBack}>← Back to AI Tutor</button>
       </aside>
-    </>}
 
-    <div className="tutor-content">
+      <main className="tutor-main-area tutor-screen tutor-redesign tutor-inner-open">
+        <header className="tutor-header tutor-header-detail">
+          <button
+            className={`tutor-menu-button ${menuOpen ? 'active' : ''}`}
+            aria-label={menuOpen ? 'Close session history' : 'Open session history'}
+            aria-expanded={menuOpen}
+            onClick={toggleSidebar}
+            title={menuOpen ? 'Collapse sidebar' : 'Open sidebar'}
+          >
+            ☰
+          </button>
+          <div className="tutor-header-main">
+            <span className="tutor-hero-kicker">Module {String(module.number).padStart(2, '0')}</span>
+            <h1>{module.title}</h1>
+          </div>
+          {sessionId && <button className="tutor-new-chat" onClick={startNewSession}>＋<span>New session</span></button>}
+        </header>
+
+        <div className="tutor-content">
       {!sessionId ? <>
         <section className="tutor-module-intro sentence-mode">
           <p>{module.description}</p>
@@ -292,5 +369,7 @@ export default function TutorExperience({ module, onBack, sessionId, onBackSessi
           </div>
         </>}
       </div>
-  </main>;
+      </main>
+    </div>
+  );
 }

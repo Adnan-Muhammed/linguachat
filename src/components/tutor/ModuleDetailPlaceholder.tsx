@@ -62,7 +62,7 @@ export default function ModuleDetailPlaceholder({ module, onBack }: ModuleDetail
           <div className="tutor-detail-hero-body">
             <div className="tutor-detail-badges">
               <span className="tutor-badge-number">Module {formattedNumber}</span>
-              <span className="tutor-badge-level">{module.level}</span>
+              {/* <span className="tutor-badge-level">{module.level}</span> */}
               <span className="tutor-badge-time">
                 {TutorIcons.clock}
                 <span>{module.estimatedTime}</span>
